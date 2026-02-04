@@ -380,6 +380,14 @@
             <div id="recognizedText" class="recognized-text">待機中...</div>
             <div id="parsedResult" class="parsed-result"></div>
         </div>
+
+        <!-- 手動入力エリア -->
+        <div style="display:flex; gap:5px; margin-bottom:10px;">
+            <input type="text" id="manualInput" class="input-text" style="margin-bottom:0"
+                placeholder="例: 床版、ひび割れ、L0.5">
+            <button id="manualParseBtn" class="btn-outline">解析</button>
+        </div>
+
         <button id="micBtn" class="mic-btn">🎙️ 音声入力</button>
         <button id="addBtn" class="btn-success" style="width:100%; display:none;">✓ 記録する</button>
     </div>
@@ -402,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.2 (Debug Mode) | Ready</div>
+    <div class="footer" id="systemStatus">v1.3 (Manual Input) | Ready</div>
 
     <script>
         // ==========================================
@@ -679,6 +687,18 @@
         const parsedDiv = document.getElementById('parsedResult');
         const addBtn = document.getElementById('addBtn');
 
+        // 手動入力
+        const manualInput = document.getElementById('manualInput');
+        const manualParseBtn = document.getElementById('manualParseBtn');
+
+        manualParseBtn.addEventListener('click', () => {
+            const text = manualInput.value;
+            if (!text) return;
+
+            recText.textContent = text; // 表示を手動入力内容に
+            processInput(text);
+        });
+
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
             recognition.lang = 'ja-JP';
@@ -695,16 +715,10 @@
             recognition.onresult = (e) => {
                 const text = e.results[0][0].transcript;
                 recText.textContent = text;
-                const result = parseInput(text);
-                displayParsed(result);
-                appState.currentParsed = result;
+                processInput(text); // 共通化
 
                 micBtn.classList.remove('listening');
                 micBtn.textContent = '🎙️ 音声入力';
-
-                if (result.member || result.damageName) {
-                    addBtn.style.display = 'block';
-                }
             };
 
             recognition.onerror = () => {
@@ -715,6 +729,16 @@
         } else {
             micBtn.disabled = true;
             micBtn.textContent = 'このブラウザは音声入力非対応です';
+        }
+
+        function processInput(text) {
+            const result = parseInput(text);
+            displayParsed(result);
+            appState.currentParsed = result;
+
+            if (result.member || result.damageName) {
+                addBtn.style.display = 'block';
+            }
         }
 
         function parseInput(text) {
