@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.4 (Fix Fetch) | Ready</div>
+    <div class="footer" id="systemStatus">v1.5 (Parsing Fix) | Ready</div>
 
     <script>
         // ==========================================
@@ -435,7 +435,7 @@
         };
         const damageKeywords = [
             { name: "腐食", aliases: ["ふしょく", "サビ", "錆", "さび"], id: 1 },
-            { name: "亀裂", aliases: ["きれつ", "クラック", "われ", "割れ"], id: 2 },
+            { name: "亀裂", aliases: ["きれつ", "クラック"], id: 2 },
             { name: "ひびわれ", aliases: ["ひび割れ", "クラック", "ひび", "ヒビ"], id: 6 },
             { name: "うき", aliases: ["浮き", "ウキ"], id: 12 },
             { name: "剥離・鉄筋露出", aliases: ["はくり", "剥離", "鉄筋露出", "露出"], id: 7 },
@@ -760,8 +760,12 @@
 
             // 1. 部材の抽出
             for (const m of memberKeywords) {
-                if (rawText.includes(m)) {
-                    res.member = m;
+                // 正規表現で、部材名＋(英数字ハイフン) を探す
+                // 例: "床版01" -> "床版"にマッチしたあと、後ろの"01"も拾う
+                const regex = new RegExp(m + "([A-Za-z0-9\\-]+)?");
+                const match = rawText.match(regex);
+                if (match) {
+                    res.member = match[0]; // "床版0001" 全体を取得
                     break;
                 }
             }
