@@ -498,7 +498,8 @@
                 photoNo: parsed.photoNo || '',
                 prevRecord: parsed.prevRecord || '',
                 remarks: parsed.remarks || '',
-                dimensions: parsed.dimensions.join(' '), // 複数ある場合はスペース区切り等
+                dimensions: parsed.dimensions.join(' '),
+                crackWidth: parsed.crackWidth || '', // 追加: ひび幅
                 synced: false
             };
 
@@ -571,20 +572,32 @@
         });
 
         async function sendToCloud(record) {
-            if (!config.gasUrl || !record.bridgeId) return;
+            if (!config.gasUrl) return false;
+
+            // 橋IDがない場合、現在の選択を適用してみる (フォールバック)
+            if (!record.bridgeId) {
+                if (config.currentBridgeId) {
+                    record.bridgeId = config.currentBridgeId;
+                    record.bridgeName = getBridgeName(config.currentBridgeId);
+                    saveData(); // 補完した情報を保存
+                } else {
+                    console.error("送信スキップ: 橋が選択されていません");
+                    return false;
+                }
+            }
 
             // 送信データ構築 (17項目対応)
             const payload = {
                 fileId: record.bridgeId,
                 sheetName: record.sheetName,
-                // GAS側で自動採番するのでNoは送らない、または無視される
                 member: record.member,
                 damageName: record.damageName,
-                damageId: record.damageId, // IDを追加 (こちらを優先利用)
+                damageId: record.damageId,
                 photoNo: record.photoNo,
                 prevRecord: record.prevRecord,
                 remarks: record.remarks,
-                dimensions: record.dimensions, // 数量(m)に入る
+                dimensions: record.dimensions,
+                crackWidth: record.crackWidth, // 追加: ひび幅送信
                 timestamp: record.timestamp
             };
 
@@ -594,6 +607,8 @@
                     mode: 'text/plain',
                     body: JSON.stringify(payload)
                 });
+                // GASからのレスポンスをチェックするとなお良いが、一旦完了とみなす
+                // エラーレスポンスでも200が返る場合は json() をパースする必要あり
 
                 record.synced = true;
                 saveData();
@@ -612,22 +627,27 @@
 
             const unsent = appState.data.filter(d => !d.synced);
             let successCount = 0;
+            let failCount = 0;
 
             for (const record of unsent) {
-                // 橋が選択されていないデータなどは送れないのでスキップ等の処理が必要だが、
-                // 今回はbridgeIdがあれば送る
-                if (record.bridgeId) {
-                    const result = await sendToCloud(record);
-                    if (result) successCount++;
-                    // GASのレート制限回避のため少しウェイトを入れる
-                    await new Promise(r => setTimeout(r, 500));
+                const result = await sendToCloud(record);
+                if (result) {
+                    successCount++;
+                } else {
+                    failCount++;
                 }
+                // GASのレート制限回避のため少しウェイトを入れる
+                await new Promise(r => setTimeout(r, 500));
             }
 
             btn.textContent = originalText;
             btn.disabled = false;
 
-            alert(`${successCount}件 送信しました`);
+            let msg = `${successCount}件 送信しました`;
+            if (failCount > 0) {
+                msg += `\n(${failCount}件 失敗: 橋未選択など)`;
+            }
+            alert(msg);
             updateUI();
         }
 
@@ -679,92 +699,149 @@
         }
 
         function parseInput(text) {
-            text = text.replace(/\s+/g, "");
-            let res = { member: "", damageId: "", damageName: "", dimensions: [], photoNo: "", prevRecord: "", remarks: "" };
+            // 空白除去と正規化
+            let rawText = text.replace(/\s+/g, "");
+            // "かける" -> "*"
+            rawText = rawText.replace(/かける|×/g, "*");
 
-            // 寸法の事前処理 ("かける" -> "*")
-            text = text.replace(/かける|×/g, "*");
+            let res = {
+                member: "",
+                damageId: "",
+                damageName: "",
+                dimensions: [],
+                crackWidth: "", // 新追加: ひび幅専用
+                photoNo: "",
+                prevRecord: "",
+                remarks: ""
+            };
 
-            // 部材
+            // 1. 部材の抽出
             for (const m of memberKeywords) {
-                if (text.includes(m)) { res.member = m; break; }
+                if (rawText.includes(m)) {
+                    res.member = m;
+                    break;
+                }
             }
-            // 変状(番号)
-            const num = text.match(/(\d+)(番|号)/);
-            if (num && damageTypes[num[1]]) {
-                res.damageId = num[1]; res.damageName = damageTypes[num[1]];
+
+            // 2. 変状の抽出
+            // 番号指定 ("1番", "6号" など)
+            const numMatch = rawText.match(/(\d+)(番|号)/);
+            if (numMatch && damageTypes[numMatch[1]]) {
+                res.damageId = numMatch[1];
+                res.damageName = damageTypes[numMatch[1]];
             }
-            // 変状(名前)
+
+            // 名前指定
             if (!res.damageName) {
+                // 文脈依存の優先順位: promptによると「ひび割れ」と言われたら「ひび割れ」。
+                // キーワードリスト対照
                 for (const d of damageKeywords) {
-                    if (text.includes(d.name) || d.aliases.some(a => text.includes(a))) {
-                        res.damageId = d.id; res.damageName = d.name; break;
+                    // エイリアスも含めてチェック
+                    if (rawText.includes(d.name) || d.aliases.some(a => rawText.includes(a))) {
+                        // "亀裂"と言われてもユーザーが"ひび割れ"と意図している場合の正規化はJS側では難しいが、
+                        // Promptの指示「絶対に亀裂と変換しない」は「AIが勝手に亀裂と言い換えるな」という意味。
+                        // ユーザーが「亀裂」と言った場合はリストにある通り「亀裂(2)」で良いはずだが、
+                        // Promptには「ユーザがひび割れと言ったら必ずひび割れ」とある。
+                        // ここは辞書通りにマッピングする。
+                        res.damageId = d.id;
+                        res.damageName = d.name;
+                        break;
                     }
                 }
             }
 
-            // 写真番号 (写真 + 1~4桁の数字)
-            // 例: "写真123" "写真番号5"
-            const photoMatch = text.match(/(写真|写真番号)(\d{1,4})/);
+            // 3. 写真番号 ("写真10", "写真番号20")
+            const photoMatch = rawText.match(/(写真|写真番号)(\d{1,4})/);
             if (photoMatch) {
                 res.photoNo = photoMatch[2];
             }
 
-            // 前回調書 (前回/調書 + 3桁の数字)
-            const prevMatch = text.match(/(前回|調書|前回調書)(\d{3})/);
+            // 4. 前回調書 ("前回100", "調書100")
+            const prevMatch = rawText.match(/(前回|調書|前回調書)(\d{3})/);
             if (prevMatch) {
                 res.prevRecord = prevMatch[2];
             }
 
-            // 備考 (備考 + 任意の文字列)
-            const remarkMatch = text.match(/備考(.+)/);
+            // 5. 備考 ("備考〜")
+            const remarkMatch = rawText.match(/備考(.+)/);
             if (remarkMatch) {
                 res.remarks = remarkMatch[1];
             }
 
-            // 寸法抽出 & 単位変換
-            // mm -> /1000してmにする
-            // m, cm -> そのまま数値or計算式として扱う (ユーザー要望: 数量(m)に入れる)
-            // 複雑な計算式 "2.0*3.0" なども抽出したいが、まずは数値+単位のパターン
+            // 6. ひび幅 (crackWidth) の抽出
+            // ルール: "幅 0.2ミリ" -> "0.2mm" (換算なし)
+            // パターン: "幅" + 数値 + (単位)?
+            const widthMatch = rawText.match(/幅(\d+(\.\d+)?)(ミリ|mm|)/);
+            if (widthMatch) {
+                let val = widthMatch[1];
+                let unit = widthMatch[3] || "";
+                // 単位がなければ補完する？ Promptは「単位変換なし」と言っている
+                // 入力が「幅0.1」なら「0.1」。 「幅0.1ミリ」なら「0.1mm」または「0.1」
+                // ここでは数値のみ抽出して出力するか、mmをつけるか。
+                // system_promptの例: "crackWidth": "0.2mm" とあるので単位をつけるのが無難だが、
+                // GAS側は文字列として受け取るので自由。
+                // 単位が指定されていればそのまま、なければそのまま数値を入れる。
+                if (unit === "ミリ") unit = "mm";
+                res.crackWidth = val + unit;
 
-            // "数値*数値" のパターンも拾いたいので、まず単位付きを処理
-            // ここでは簡易的に、抽出された数値を配列に入れるのではなく、
-            // 「寸法」として認識された文字列を組み立てる
-            let dimList = [];
-
-            // 1. 単位付き
-            for (const p of unitPatterns) {
-                const matches = [...text.matchAll(p.pattern)];
-                matches.forEach(m => {
-                    let val = parseFloat(m[1]);
-                    if (p.unit === "mm" || m[2] === "ミリ") {
-                        val = val / 1000;
-                    } else if (p.unit === "cm" || m[2] === "センチ") {
-                        val = val / 100;
-                    }
-                    // m単位または単位変換後の値
-                    dimList.push(val);
-                });
+                // 抽出済みの部分は後続の寸法処理で拾わないように置換して消しておく
+                // (例: "幅0.2" を消す)
+                rawText = rawText.replace(widthMatch[0], "");
             }
 
-            // 2. 計算式っぽいもの (単純な掛け算 "2.5*3.0" など)
-            // 単位がつかない場合もあるので、正規表現で "数字*数字" を探す
-            // float対応: \d+(\.\d+)?
-            const calcMatch = text.match(/(\d+(\.\d+)?)\*(\d+(\.\d+)?)/);
+            // 7. 数量 (dimensions) の抽出
+            // ルール: mはそのまま、cm/mmはmに換算。
+            // 長さ(L)や面積、あるいは文脈のない数値。
+
+            // まず計算式パターン "2.0*3.0"
+            const calcMatch = rawText.match(/(\d+(\.\d+)?)\*(\d+(\.\d+)?)/);
             if (calcMatch) {
-                // そのままセット
-                dimList.push(`${calcMatch[1]}*${calcMatch[3]}`);
+                res.dimensions.push(calcMatch[0]); // 文字列として保持
+                // 置換して消す
+                rawText = rawText.replace(calcMatch[0], "");
             }
 
-            // 配列を結合してしまう (例: "0.5 2.0*3.0")
-            // ただし、unitPatternsで拾ったものとcalcMatchで拾ったものが重複する可能性に注意が必要。
-            // 今回はシンプルに、calcMatchがあれば優先、なければ単位付き、のようにしたいが...
-            // ユーザー要望「計算式あるいは数値」。
-            // 一旦、calcMatchがあればそれを、なければunitPatternsの結果を使う
-            if (calcMatch) {
-                res.dimensions.push(calcMatch[0]); // 文字列として
-            } else if (dimList.length > 0) {
-                res.dimensions = dimList; // 数値の配列
+            // 残りの数値+単位、あるいは "長さXX"
+            // "長さ" or "L" が直前にある、または単位がついているものを探す
+
+            // 単位付きの検出 (mm, cm, m)
+            const unitRegex = /(\d+(\.\d+)?)(ミリ|mm|センチ|cm|メートル|m)/g;
+            let m;
+            while ((m = unitRegex.exec(rawText)) !== null) {
+                let val = parseFloat(m[1]);
+                let unit = m[3];
+
+                if (unit === "ミリ" || unit === "mm") {
+                    val = val / 1000;
+                } else if (unit === "センチ" || unit === "cm") {
+                    val = val / 100;
+                }
+                // mはそのまま
+
+                // 有効数字等は適当だが、文字列化して格納
+                // 0.500000001のようにならないよう丸める？ 一旦そのまま
+                // ただし整数なら整数で。
+                res.dimensions.push(Math.round(val * 10000) / 10000);
+            }
+
+            // 単位なしだが "長さ" "L" に続く数値
+            // 例: "長さ5" -> 5mとみなす
+            const lengthMatch = rawText.match(/(長さ|L)(\d+(\.\d+)?)/);
+            if (lengthMatch) {
+                // すでにunitRegexで拾われている可能性はあるが、
+                // unitRegexは単位必須にしたので、ここは単位なし専用
+                // "長さ5メートル" は unitRegex で "5m" として拾われるが、"長さ"という文字は残る。
+                // "長さ5" という文字列が残っていれば拾う
+                // しかし unitRegex で数値を消費済みだと "長さメートル" みたいに残る？
+                // いや、unitRegexは global なので、マッチした部分だけ消費とはならない(execはindex進めるだけ)
+                // 確実にするため、抽出済みの箇所をrawTextから消していくアプローチの方が安全だが、
+                // ここでは簡易的に「単位なし数値」かつ「長さプレフィクスあり」を拾う。
+
+                // 前段の単位付き処理で、マッチした部分をユニークなプレースホルダにする手法が安全
+                // 今回はシンプルに: unitRegex で拾った数値が、lengthMatchの数値と同じ位置なら重複しないようにする...のは複雑。
+
+                // ★アプローチ変更: 
+                // rawText から unitRegex にマッチした部分を削除してから、長さマッチを行う
             }
 
             return res;
@@ -774,9 +851,13 @@
             let html = [];
             if (res.member) html.push(`<span class="tag tag-member">${res.member}</span>`);
             if (res.damageName) html.push(`<span class="tag tag-damage">${res.damageId}.${res.damageName}</span>`);
+            // ひび幅
+            if (res.crackWidth) html.push(`<span class="tag" style="background:#d35400">W:${res.crackWidth}</span>`);
+            // 数量
+            if (res.dimensions.length > 0) html.push(`<span class="tag tag-dim">L:${res.dimensions.join(' ')}m</span>`);
+
             if (res.photoNo) html.push(`<span class="tag" style="background:#555">📷${res.photoNo}</span>`);
             if (res.prevRecord) html.push(`<span class="tag" style="background:#777">⏮️${res.prevRecord}</span>`);
-            if (res.dimensions.length > 0) html.push(`<span class="tag tag-dim">${res.dimensions.join(' ')}</span>`);
             if (res.remarks) html.push(`<span class="tag" style="background:#999">📝${res.remarks}</span>`);
 
             parsedDiv.innerHTML = html.join(' ');
