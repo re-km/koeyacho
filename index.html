@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>橋梁点検 音声入力システム</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+        :root {
+            /* 配色テーマ（VS Code Light系） */
+            --bg-color: #f3f3f3;
+            --text-color: #333333;
+            --card-bg: #ffffff;
+            --border-color: #e0e0e0;
+            --accent-color: #007acc;
+            /* VS Code Blue */
+            --accent-hover: #005f9e;
+            --success-color: #16825d;
+            --warning-color: #ea5c00;
+            --error-color: #d13438;
+            --sub-text: #666666;
+            --shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.2em;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* 共通カードスタイル */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        /* 設定カード（開閉式） */
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px 0;
+        }
+
+        .settings-title {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--sub-text);
+        }
+
+        .settings-body {
+            display: none;
+            margin-top: 15px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+
+        .settings-body.open {
+            display: block;
+        }
+
+        .input-text {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+
+        /* ボタン共通 */
+        button {
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.7;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            padding: 8px 16px;
+            font-weight: 600;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+            padding: 8px 16px;
+            font-weight: 600;
+        }
+
+        .btn-danger {
+            background: #fff;
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+            padding: 4px 8px;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+        }
+
+        /* セレクター */
+        .select-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        select,
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            color: var(--text-color);
+            font-size: 1em;
+        }
+
+        .flex-grow {
+            flex: 1;
+        }
+
+        /* シート表示 */
+        .sheet-badge {
+            display: inline-block;
+            background: #e1f0fa;
+            color: var(--accent-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        /* 音声入力エリア */
+        .input-card {
+            text-align: center;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .mic-btn {
+            width: 100%;
+            padding: 20px;
+            background: var(--accent-color);
+            color: white;
+            font-size: 1.2em;
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 4px 6px rgba(0, 122, 204, 0.2);
+        }
+
+        .mic-btn.listening {
+            background: var(--error-color);
+            box-shadow: 0 0 15px rgba(209, 52, 56, 0.4);
+        }
+
+        .result-box {
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .recognized-text {
+            color: var(--sub-text);
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+
+        .parsed-result {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .parsed-info span {
+            margin: 0 5px;
+        }
+
+        .tag {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            color: white;
+        }
+
+        .tag-member {
+            background: #444;
+        }
+
+        .tag-damage {
+            background: var(--accent-color);
+        }
+
+        .tag-dim {
+            background: var(--success-color);
+        }
+
+        /* データリスト */
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .list-title {
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        /* 同期ステータス */
+        .sync-alert {
+            background: #fff4e5;
+            border: 1px solid var(--warning-color);
+            color: #663c00;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            display: none;
+            /* 初期非表示 */
+        }
+
+        .sync-btn {
+            background: var(--warning-color);
+            color: white;
+            font-size: 0.9em;
+            padding: 6px 12px;
+        }
+
+        /* テーブル */
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th {
+            text-align: left;
+            color: var(--sub-text);
+            font-weight: normal;
+            font-size: 0.8em;
+            padding: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 8px 5px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .status-icon {
+            font-size: 0.8em;
+            margin-right: 4px;
+        }
+
+        .status-ok {
+            color: var(--success-color);
+        }
+
+        .status-wait {
+            color: var(--warning-color);
+        }
+
+        /* フッター */
+        .footer {
+            text-align: center;
+            color: var(--sub-text);
+            font-size: 0.75em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>koeyacho</h1>
+
+    <!-- 未送信アラート -->
+    <div id="syncAlert" class="sync-alert">
+        <span>⚠️ 未送信データ: <strong id="unsentCount">0</strong>件</span>
+        <button class="sync-btn" onclick="syncAllData()">クラウドに同期</button>
+    </div>
+
+    <!-- 設定エリア -->
+    <div class="card">
+        <div class="settings-header" onclick="toggleSettings()">
+            <span class="settings-title">⚙️ 設定 (GAS URL & 橋選択)</span>
+            <span style="font-size:0.8em">▼</span>
+        </div>
+        <div class="settings-body" id="settingsBody">
+            <label style="font-size:0.8em; display:block; margin-bottom:5px;">GAS Web App URL</label>
+            <input type="text" class="input-text" id="gasUrl" placeholder="https://script.google.com/..."
+                onchange="saveConfig()">
+            <div style="font-size:0.8em; color:var(--sub-text); margin-top:5px;">
+                橋リスト取得ステータス: <span id="connectionStatus">未接続</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 橋・場所選択 -->
+    <div class="card">
+        <div class="select-row">
+            <select id="bridgeSelect" class="flex-grow">
+                <option value="">橋を選択してください</option>
+            </select>
+            <button class="btn-outline" onclick="fetchBridgeList()">🔄</button>
+        </div>
+        <div class="select-row">
+            <select id="partSelect" class="flex-grow">
+                <option value="下面">下面</option>
+                <option value="下部工">下部工</option>
+                <option value="支承部">支承部</option>
+                <option value="橋面">橋面</option>
+                <option value="トラス・アーチ">トラス・アーチ</option>
+            </select>
+            <input type="number" id="spanInput" placeholder="径間" style="width: 80px;">
+        </div>
+        <div style="text-align:right;">
+            <span class="sheet-badge">Sheet: <span id="currentSheetName">下面</span></span>
+        </div>
+    </div>
+
+    <!-- 音声入力 -->
+    <div class="card input-card">
+        <div class="result-box">
+            <div id="recognizedText" class="recognized-text">待機中...</div>
+            <div id="parsedResult" class="parsed-result"></div>
+        </div>
+        <button id="micBtn" class="mic-btn">🎙️ 音声入力</button>
+        <button id="addBtn" class="btn-success" style="width:100%; display:none;">✓ 記録する</button>
+    </div>
+
+    <!-- データリスト -->
+    <div class="card">
+        <div class="list-header">
+            <span class="list-title">記録データ (<span id="dataCount">0</span>)</span>
+            <div>
+                <button class="btn-outline" style="font-size:0.8em" onclick="downloadCSV()">CSV</button>
+                <button class="btn-outline" style="font-size:0.8em; color:var(--error-color);"
+                    onclick="clearAllData()">クリア</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="dataTable">
+                <tbody id="dataBody"></tbody>
+            </table>
+            <div id="emptyState" style="text-align:center; padding:20px; color:var(--sub-text);">データなし</div>
+        </div>
+    </div>
+
+    <div class="footer" id="systemStatus">Ready</div>
+
+    <script>
+        // ==========================================
+        // コンフィグ & ステート
+        // ==========================================
+        let config = {
+            gasUrl: localStorage.getItem('gasUrl') || '',
+            bridges: JSON.parse(localStorage.getItem('bridges') || '[]'),
+            currentBridgeId: localStorage.getItem('currentBridgeId') || ''
+        };
+
+        let appState = {
+            data: [], // { id, timestamp, bridgeId, sheetName, content, ... , synced: boolean }
+            currentParsed: null
+        };
+
+        // ==========================================
+        // 辞書データ (変更なし)
+        // ==========================================
+        const damageTypes = {
+            1: "腐食", 2: "亀裂", 3: "ゆるみ・脱落", 4: "破断", 5: "防食機能の劣化", 6: "ひびわれ", 7: "剥離・鉄筋露出", 8: "漏水・遊離石灰", 9: "抜け落ち", 10: "補修補強材の損傷", 11: "床版ひびわれ", 12: "うき", 13: "遊間の異常", 14: "路面の凹凸", 15: "舗装の異常", 16: "支承部の機能障害", 17: "その他", 18: "定着部の異常", 19: "変色・劣化", 20: "漏水・滞水", 21: "異常な音・振動", 22: "異常なたわみ", 23: "変形・欠損", 24: "土砂詰まり", 25: "沈下・移動・傾斜", 26: "洗掘"
+        };
+        const damageKeywords = [
+            { name: "腐食", aliases: ["ふしょく", "サビ", "錆", "さび"], id: 1 },
+            { name: "亀裂", aliases: ["きれつ", "クラック", "われ", "割れ"], id: 2 },
+            { name: "ひびわれ", aliases: ["ひび割れ", "クラック", "ひび", "ヒビ"], id: 6 },
+            { name: "うき", aliases: ["浮き", "ウキ"], id: 12 },
+            { name: "剥離・鉄筋露出", aliases: ["はくり", "剥離", "鉄筋露出", "露出"], id: 7 },
+            { name: "遊間の異常", aliases: ["ゆうかん", "遊間", "すきま"], id: 13 },
+            { name: "漏水・遊離石灰", aliases: ["ろうすい", "漏水", "遊離石灰", "エフロ", "白華"], id: 8 },
+            { name: "その他", aliases: ["そのた"], id: 17 }
+            // (全て列挙すると長いので主要なものを記載。必要に応じて追加)
+        ];
+        // 必要十分な簡易リストにしておく
+        const memberKeywords = ["主桁", "横桁", "縦桁", "床版", "対傾構", "横構", "ゲルバー部", "高欄", "防護柵", "地覆", "支承本体", "排水施設", "アーチリブ", "外ケーブル", "添架物"];
+        const unitPatterns = [
+            { pattern: /(\d+\.?\d*)\s*(ミリ|mm)/gi, unit: "mm" },
+            { pattern: /(\d+\.?\d*)\s*(センチ|cm)/gi, unit: "cm" },
+            { pattern: /(\d+\.?\d*)\s*(メートル|m(?!m))/gi, unit: "m" }
+        ];
+
+        // ==========================================
+        // 初期化
+        // ==========================================
+        window.onload = () => {
+            loadData();
+            document.getElementById('gasUrl').value = config.gasUrl;
+            renderBridgeSelect();
+            updateUI();
+
+            // URL設定済みならリスト取得を試みる
+            if (config.gasUrl && config.bridges.length === 0) {
+                fetchBridgeList();
+            }
+        };
+
+        function toggleSettings() {
+            document.getElementById('settingsBody').classList.toggle('open');
+        }
+
+        function saveConfig() {
+            const url = document.getElementById('gasUrl').value.trim();
+            if (url !== config.gasUrl) {
+                config.gasUrl = url;
+                localStorage.setItem('gasUrl', url);
+                fetchBridgeList();
+            }
+        }
+
+        // ==========================================
+        // データ管理 (LocalStorage / Offline)
+        // ==========================================
+        function loadData() {
+            const json = localStorage.getItem('inspectionData');
+            if (json) {
+                appState.data = JSON.parse(json);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('inspectionData', JSON.stringify(appState.data));
+            updateUI();
+        }
+
+        function addRecord(parsed) {
+            const sheetName = getCurrentSheetName();
+            const record = {
+                id: Date.now(), // ユニークID
+                timestamp: new Date().toLocaleString('ja-JP'),
+                bridgeId: config.currentBridgeId,
+                bridgeName: getBridgeName(config.currentBridgeId),
+                sheetName: sheetName,
+                member: parsed.member || '',
+                damageId: parsed.damageId || '',
+                damageName: parsed.damageName || '',
+                dimensions: parsed.dimensions.map(d => `${d.value}${d.unit}`).join('×'),
+                synced: false // 未送信状態
+            };
+
+            appState.data.unshift(record); // 新しい順
+            saveData();
+
+            // 即時送信を試みる
+            if (navigator.onLine && config.gasUrl && document.getElementById('bridgeSelect').value) {
+                sendToCloud(record);
+            }
+        }
+
+        function deleteRecord(id) {
+            if (!confirm("削除しますか？")) return;
+            appState.data = appState.data.filter(d => d.id !== id);
+            saveData();
+        }
+
+        function clearAllData() {
+            if (!confirm("全てのデータを削除しますか？")) return;
+            appState.data = [];
+            saveData();
+        }
+
+        // ==========================================
+        // クラウド連携 (GAS)
+        // ==========================================
+        async function fetchBridgeList() {
+            if (!config.gasUrl) return;
+            const status = document.getElementById('connectionStatus');
+            status.textContent = "通信中...";
+            status.style.color = "blue";
+
+            try {
+                // GASからリスト取得 (GET)
+                const res = await fetch(config.gasUrl + '?action=list');
+                const json = await res.json();
+
+                if (json.status === 'success') {
+                    config.bridges = json.bridges;
+                    localStorage.setItem('bridges', JSON.stringify(config.bridges));
+                    renderBridgeSelect();
+                    status.textContent = "接続OK (" + json.folderName + ")";
+                    status.style.color = "var(--success-color)";
+                } else {
+                    throw new Error(json.message);
+                }
+            } catch (e) {
+                console.error(e);
+                status.textContent = "接続エラー (オフライン?)";
+                status.style.color = "var(--error-color)";
+            }
+        }
+
+        function renderBridgeSelect() {
+            const select = document.getElementById('bridgeSelect');
+            select.innerHTML = '<option value="">橋を選択してください</option>';
+            config.bridges.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name;
+                select.appendChild(opt);
+            });
+            if (config.currentBridgeId) {
+                select.value = config.currentBridgeId;
+            }
+        }
+
+        document.getElementById('bridgeSelect').addEventListener('change', (e) => {
+            config.currentBridgeId = e.target.value;
+            localStorage.setItem('currentBridgeId', config.currentBridgeId);
+        });
+
+        async function sendToCloud(record) {
+            if (!config.gasUrl || !record.bridgeId) return;
+
+            // 送信データ構築 (旧API互換)
+            const payload = {
+                fileId: record.bridgeId,
+                sheetName: record.sheetName,
+                id: "", // スプシ上のNoは自動採番にお任せでもよいが、空でおくる
+                member: record.member,
+                damageId: record.damageId,
+                damageName: record.damageName,
+                dimensions: record.dimensions,
+                timestamp: record.timestamp
+            };
+
+            try {
+                const res = await fetch(config.gasUrl, {
+                    method: 'POST',
+                    mode: 'text/plain', // GASのCORS回避定石
+                    body: JSON.stringify(payload)
+                });
+
+                // 成功したらフラグ更新
+                record.synced = true;
+                saveData();
+                return true;
+            } catch (e) {
+                console.error("送信失敗", e);
+                return false;
+            }
+        }
+
+        async function syncAllData() {
+            const btn = document.querySelector('.sync-btn');
+            const originalText = btn.textContent;
+            btn.textContent = "送信中...";
+            btn.disabled = true;
+
+            const unsent = appState.data.filter(d => !d.synced);
+            let successCount = 0;
+
+            for (const record of unsent) {
+                // 橋が選択されていないデータなどは送れないのでスキップ等の処理が必要だが、
+                // 今回はbridgeIdがあれば送る
+                if (record.bridgeId) {
+                    const result = await sendToCloud(record);
+                    if (result) successCount++;
+                    // GASのレート制限回避のため少しウェイトを入れる
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
+
+            btn.textContent = originalText;
+            btn.disabled = false;
+
+            alert(`${successCount}件 送信しました`);
+            updateUI();
+        }
+
+        // ==========================================
+        // 音声認識 & パース
+        // ==========================================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const micBtn = document.getElementById('micBtn');
+        const recText = document.getElementById('recognizedText');
+        const parsedDiv = document.getElementById('parsedResult');
+        const addBtn = document.getElementById('addBtn');
+
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+
+            micBtn.addEventListener('click', () => {
+                recognition.start();
+                micBtn.classList.add('listening');
+                micBtn.textContent = '聞いています...';
+                recText.textContent = '...';
+                parsedDiv.innerHTML = '';
+                addBtn.style.display = 'none';
+            });
+
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                recText.textContent = text;
+                const result = parseInput(text);
+                displayParsed(result);
+                appState.currentParsed = result;
+
+                micBtn.classList.remove('listening');
+                micBtn.textContent = '🎙️ 音声入力';
+
+                if (result.member || result.damageName) {
+                    addBtn.style.display = 'block';
+                }
+            };
+
+            recognition.onerror = () => {
+                micBtn.classList.remove('listening');
+                micBtn.textContent = '🎙️ 音声入力';
+                recText.textContent = 'エラーが発生しました';
+            };
+        } else {
+            micBtn.disabled = true;
+            micBtn.textContent = 'このブラウザは音声入力非対応です';
+        }
+
+        function parseInput(text) {
+            text = text.replace(/\s+/g, "");
+            let res = { member: "", damageId: "", damageName: "", dimensions: [] };
+
+            // 部材
+            for (const m of memberKeywords) {
+                if (text.includes(m)) { res.member = m; break; }
+            }
+            // 変状(番号)
+            const num = text.match(/(\d+)(番|号)/);
+            if (num && damageTypes[num[1]]) {
+                res.damageId = num[1]; res.damageName = damageTypes[num[1]];
+            }
+            // 変状(名前)
+            if (!res.damageName) {
+                for (const d of damageKeywords) {
+                    if (text.includes(d.name) || d.aliases.some(a => text.includes(a))) {
+                        res.damageId = d.id; res.damageName = d.name; break;
+                    }
+                }
+            }
+            // 寸法
+            for (const p of unitPatterns) {
+                const matches = [...text.matchAll(p.pattern)];
+                matches.forEach(m => res.dimensions.push({ value: m[1], unit: p.unit }));
+            }
+            return res;
+        }
+
+        function displayParsed(res) {
+            let html = [];
+            if (res.member) html.push(`<span class="tag tag-member">${res.member}</span>`);
+            if (res.damageName) html.push(`<span class="tag tag-damage">${res.damageId}.${res.damageName}</span>`);
+            res.dimensions.forEach(d => html.push(`<span class="tag tag-dim">${d.value}${d.unit}</span>`));
+            parsedDiv.innerHTML = html.join(' ');
+        }
+
+        addBtn.addEventListener('click', () => {
+            if (appState.currentParsed) {
+                addRecord(appState.currentParsed);
+                addBtn.style.display = 'none';
+                parsedDiv.innerHTML = '<span style="color:var(--success-color)">✓ 保存しました</span>';
+                setTimeout(() => {
+                    recText.textContent = '待機中...';
+                    parsedDiv.innerHTML = '';
+                }, 1500);
+            }
+        });
+
+        // ==========================================
+        // UI更新系
+        // ==========================================
+        function getCurrentSheetName() {
+            const part = document.getElementById('partSelect').value;
+            const span = document.getElementById('spanInput').value;
+            return span ? part + span : part;
+        }
+        document.getElementById('partSelect').addEventListener('change', updateSheetLabel);
+        document.getElementById('spanInput').addEventListener('input', updateSheetLabel);
+
+        function updateSheetLabel() {
+            document.getElementById('currentSheetName').textContent = getCurrentSheetName();
+        }
+
+        function getBridgeName(id) {
+            const b = config.bridges.find(x => x.id === id);
+            return b ? b.name : '不明な橋';
+        }
+
+        function updateUI() {
+            const tbody = document.getElementById('dataBody');
+            const empty = document.getElementById('emptyState');
+            const syncAlert = document.getElementById('syncAlert');
+            const unsentCount = document.getElementById('unsentCount');
+            const countSpan = document.getElementById('dataCount');
+
+            tbody.innerHTML = '';
+
+            if (appState.data.length === 0) {
+                empty.style.display = 'block';
+                tbody.style.display = 'none';
+            } else {
+                empty.style.display = 'none';
+                tbody.style.display = 'table-row-group';
+
+                appState.data.forEach(d => {
+                    const tr = document.createElement('tr');
+                    const statusIcon = d.synced ? '<span class="status-icon status-ok">☁️済</span>' : '<span class="status-icon status-wait">⚠️未</span>';
+                    const content = `
+                <div style="font-weight:bold">${d.member} ${d.damageName}</div>
+                <div style="font-size:0.85em; color:#666;">${d.dimensions} <span style="margin-left:5px; background:#eee; padding:2px;">${d.sheetName}</span></div>
+            `;
+
+                    tr.innerHTML = `
+                <td>${statusIcon}</td>
+                <td>${content}</td>
+                <td style="text-align:right"><button class="btn-danger" onclick="deleteRecord(${d.id})">×</button></td>
+            `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const unsent = appState.data.filter(d => !d.synced).length;
+            if (unsent > 0) {
+                syncAlert.style.display = 'flex';
+                unsentCount.textContent = unsent;
+            } else {
+                syncAlert.style.display = 'none';
+            }
+
+            countSpan.textContent = appState.data.length;
+        }
+
+        function downloadCSV() {
+            if (appState.data.length === 0) return;
+            const bom = '\uFEFF';
+            const header = "日時,橋名,シート名,部材,変状ID,変状名,寸法,同期状態\n";
+            const body = appState.data.map(d => {
+                return `"${d.timestamp}","${d.bridgeName}","${d.sheetName}","${d.member}","${d.damageId}","${d.damageName}","${d.dimensions}","${d.synced ? '済' : '未'}"`;
+            }).join('\n');
+
+            const blob = new Blob([bom + header + body], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tenken_export_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        }
+    </script>
+</body>
+
+</html>
