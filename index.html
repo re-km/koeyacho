@@ -504,6 +504,7 @@
                 bridgeName: getBridgeName(config.currentBridgeId),
                 sheetName: sheetName,
                 member: parsed.member || '',
+                elementNumber: parsed.elementNumber || '', // 追加
                 damageId: parsed.damageId || '',
                 damageName: parsed.damageName || '',
                 photoNo: parsed.photoNo || '',
@@ -602,6 +603,7 @@
                 fileId: record.bridgeId,
                 sheetName: record.sheetName,
                 member: record.member,
+                elementNumber: record.elementNumber, // 追加
                 damageName: record.damageName,
                 damageId: record.damageId,
                 photoNo: record.photoNo,
@@ -749,10 +751,11 @@
 
             let res = {
                 member: "",
+                elementNumber: "", // 新追加
                 damageId: "",
                 damageName: "",
                 dimensions: [],
-                crackWidth: "", // 新追加: ひび幅専用
+                crackWidth: "",
                 photoNo: "",
                 prevRecord: "",
                 remarks: ""
@@ -761,11 +764,14 @@
             // 1. 部材の抽出
             for (const m of memberKeywords) {
                 // 正規表現で、部材名＋(英数字ハイフン) を探す
-                // 例: "床版01" -> "床版"にマッチしたあと、後ろの"01"も拾う
+                // 例: "床版01" -> match[0]="床版01", match[1]="01"
                 const regex = new RegExp(m + "([A-Za-z0-9\\-]+)?");
                 const match = rawText.match(regex);
                 if (match) {
-                    res.member = match[0]; // "床版0001" 全体を取得
+                    res.member = m; // 部材名はキーワードそのもの
+                    if (match[1]) {
+                        res.elementNumber = match[1]; // 後ろについた番号を要素番号とする
+                    }
                     break;
                 }
             }
@@ -884,10 +890,7 @@
                 // 確実にするため、抽出済みの箇所をrawTextから消していくアプローチの方が安全だが、
                 // ここでは簡易的に「単位なし数値」かつ「長さプレフィクスあり」を拾う。
 
-                // 前段の単位付き処理で、マッチした部分をユニークなプレースホルダにする手法が安全
-                // 今回はシンプルに: unitRegex で拾った数値が、lengthMatchの数値と同じ位置なら重複しないようにする...のは複雑。
-
-                // ★アプローチ変更: 
+                // ★アプローチ変更:
                 // rawText から unitRegex にマッチした部分を削除してから、長さマッチを行う
             }
 
@@ -896,7 +899,12 @@
 
         function displayParsed(res) {
             let html = [];
-            if (res.member) html.push(`<span class="tag tag-member">${res.member}</span>`);
+            if (res.member) {
+                html.push(`<span class="tag tag-member">${res.member}</span>`);
+                if (res.elementNumber) {
+                    html.push(`<span class="tag" style="background:#444">#${res.elementNumber}</span>`);
+                }
+            }
             if (res.damageName) html.push(`<span class="tag tag-damage">${res.damageId}.${res.damageName}</span>`);
             // ひび幅
             if (res.crackWidth) html.push(`<span class="tag" style="background:#d35400">W:${res.crackWidth}</span>`);
@@ -964,13 +972,14 @@
 
                     // 表示内容を少しリッチに
                     let details = [];
+                    if (d.elementNumber) details.push(`#${d.elementNumber}`); // 表示追加
                     if (d.photoNo) details.push(`📷${d.photoNo}`);
                     if (d.prevRecord) details.push(`⏮️${d.prevRecord}`);
                     if (d.dimensions) details.push(`📏${d.dimensions}`);
                     if (d.remarks) details.push(`📝${d.remarks}`);
 
                     const content = `
-                <div style="font-weight:bold">${d.member} ${d.damageName}</div>
+                <div style="font-weight:bold">${d.member} <span style="font-weight:normal; font-size:0.9em">${d.damageName}</span></div>
                 <div style="font-size:0.85em; color:#666;">${details.join(' ')} <span style="margin-left:5px; background:#eee; padding:2px;">${d.sheetName}</span></div>
             `;
 

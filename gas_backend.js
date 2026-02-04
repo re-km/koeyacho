@@ -57,11 +57,11 @@ function doPost(e) {
             "",                     // 応急措置写真
             data.member || "",      // 部材
             "",                     // 材料
-            "",                     // 要素番号
+            data.elementNumber || "", // 要素番号
             data.damageId || "",    // 変状 (番号で入力)
-            "",                     // 程度
-            "",                     // ひび間隔
-            "",                     // ひび幅
+            data.degree || "",      // 程度
+            data.crackSpacing || "",// ひび間隔
+            data.crackWidth || "",  // ひび幅
             data.dimensions || "",  // 数量(m)
             "",                     // 判定
             "",                     // 進行
