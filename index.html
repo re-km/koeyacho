@@ -402,7 +402,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.1 (Fixes Applied) | Ready</div>
+    <div class="footer" id="systemStatus">v1.2 (Debug Mode) | Ready</div>
 
     <script>
         // ==========================================
@@ -575,7 +575,7 @@
         });
 
         async function sendToCloud(record) {
-            if (!config.gasUrl) return false;
+            if (!config.gasUrl) return { success: false, msg: "GAS URL未設定" };
 
             // 橋IDがない場合、現在の選択を適用してみる (フォールバック)
             if (!record.bridgeId) {
@@ -585,11 +585,11 @@
                     saveData(); // 補完した情報を保存
                 } else {
                     console.error("送信スキップ: 橋が選択されていません");
-                    return false;
+                    return { success: false, msg: "橋未選択" };
                 }
             }
 
-            // 送信データ構築 (17項目対応)
+            // 送信データ構築
             const payload = {
                 fileId: record.bridgeId,
                 sheetName: record.sheetName,
@@ -600,7 +600,7 @@
                 prevRecord: record.prevRecord,
                 remarks: record.remarks,
                 dimensions: record.dimensions,
-                crackWidth: record.crackWidth, // 追加: ひび幅送信
+                crackWidth: record.crackWidth,
                 timestamp: record.timestamp
             };
 
@@ -610,15 +610,29 @@
                     mode: 'text/plain',
                     body: JSON.stringify(payload)
                 });
-                // GASからのレスポンスをチェックするとなお良いが、一旦完了とみなす
-                // エラーレスポンスでも200が返る場合は json() をパースする必要あり
+                // GASは成功なら200番台、失敗ならエラーを返すが、text/plainモードだとopaque responseの場合もある
+                // しかし通常はcors fetch可能
+                const text = await res.text(); // レスポンス確認用
+
+                // 成功判定 (簡易)
+                // JSONが返る前提
+                try {
+                    const json = JSON.parse(text);
+                    if (json.status === 'error' || json.success === false) {
+                        return { success: false, msg: "GASエラー: " + (json.error || json.message) };
+                    }
+                } catch (e) {
+                    // JSONパース失敗でも、とりあえず送信できたとみなすか？
+                    // いや、エラーがHTMLで返っている可能性がある
+                    console.warn("RESP Parse Error", text);
+                }
 
                 record.synced = true;
                 saveData();
-                return true;
+                return { success: true, msg: "OK" };
             } catch (e) {
                 console.error("送信失敗", e);
-                return false;
+                return { success: false, msg: "通信エラー: " + e.message };
             }
         }
 
@@ -630,14 +644,14 @@
 
             const unsent = appState.data.filter(d => !d.synced);
             let successCount = 0;
-            let failCount = 0;
+            let errors = [];
 
             for (const record of unsent) {
-                const result = await sendToCloud(record);
-                if (result) {
+                const res = await sendToCloud(record);
+                if (res.success) {
                     successCount++;
                 } else {
-                    failCount++;
+                    errors.push(res.msg);
                 }
                 // GASのレート制限回避のため少しウェイトを入れる
                 await new Promise(r => setTimeout(r, 500));
@@ -647,8 +661,10 @@
             btn.disabled = false;
 
             let msg = `${successCount}件 送信しました`;
-            if (failCount > 0) {
-                msg += `\n(${failCount}件 失敗: 橋未選択など)`;
+            if (errors.length > 0) {
+                // エラー内容をユニークにして表示
+                const uniqueErrors = [...new Set(errors)];
+                msg += `\n(${errors.length}件 失敗)\n理由: ${uniqueErrors.join(', ')}`;
             }
             alert(msg);
             updateUI();
