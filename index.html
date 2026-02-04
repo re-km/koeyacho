@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.3 (Manual Input) | Ready</div>
+    <div class="footer" id="systemStatus">v1.4 (Fix Fetch) | Ready</div>
 
     <script>
         // ==========================================
@@ -615,7 +615,7 @@
             try {
                 const res = await fetch(config.gasUrl, {
                     method: 'POST',
-                    mode: 'text/plain',
+                    headers: { "Content-Type": "text/plain" }, // CORS Preflight回避＆GAS互換
                     body: JSON.stringify(payload)
                 });
                 // GASは成功なら200番台、失敗ならエラーを返すが、text/plainモードだとopaque responseの場合もある
