@@ -43,15 +43,30 @@ function doPost(e) {
         }
 
         // データを追加
-        const timestamp = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+        // データを追加
+        // No. は現在の行数（ヘッダー分引く必要なし？ いいえ、ヘッダーが1行目なので、現在データ行数+1 ＝ getLastRow()でよい）
+        // 例: ヘッダーのみ(1行) -> getLastRow=1 -> 次は No.1
+        // 例: データ1件あり(2行) -> getLastRow=2 -> 次は No.2
+        const nextNo = sheet.getLastRow();
+
         const newRow = [
-            timestamp,
-            data.id || "",
-            data.member || "",
-            data.damageId || "",
-            data.damageName || "",
-            data.dimensions || "",
-            data.timestamp || ""
+            nextNo,                 // No.
+            data.prevRecord || "",  // 前回調書
+            "",                     // 同ｱﾝｸﾞﾙ写
+            data.photoNo || "",     // 写真番号
+            "",                     // 応急措置写真
+            data.member || "",      // 部材
+            "",                     // 材料
+            "",                     // 要素番号
+            data.damageId || "",    // 変状 (番号で入力)
+            "",                     // 程度
+            "",                     // ひび間隔
+            "",                     // ひび幅
+            data.dimensions || "",  // 数量(m)
+            "",                     // 判定
+            "",                     // 進行
+            "",                     // 第三者被害
+            data.remarks || ""      // 備考
         ];
 
         sheet.appendRow(newRow);
@@ -121,20 +136,29 @@ function getAllFilesRecursively(folder, list) {
 
 // ヘッダー設定（共通関数）
 function setupSheetHeader(sheet) {
-    sheet.getRange(1, 1, 1, 7).setValues([
-        ["受信日時", "No", "部材", "変状番号", "変状名", "寸法", "入力時刻"]
-    ]);
+    const headers = [
+        "No.", "前回調書", "同ｱﾝｸﾞﾙ写", "写真番号", "応急措置写真",
+        "部材", "材料", "要素番号", "変状", "程度",
+        "ひび間隔", "ひび幅", "数量(m)", "判定", "進行",
+        "第三者被害", "備考"
+    ];
 
-    const header = sheet.getRange(1, 1, 1, 7);
-    header.setBackground("#4285f4");
-    header.setFontColor("white");
-    header.setFontWeight("bold");
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setBackground("#4285f4");
+    headerRange.setFontColor("white");
+    headerRange.setFontWeight("bold");
     sheet.setFrozenRows(1);
 
-    sheet.setColumnWidth(1, 150);
-    sheet.setColumnWidth(3, 100);
-    sheet.setColumnWidth(5, 150);
-    sheet.setColumnWidth(6, 120);
+    // 列幅調整 (主な項目のみ)
+    sheet.setColumnWidth(1, 50);  // No.
+    sheet.setColumnWidth(2, 60);  // 前回
+    sheet.setColumnWidth(4, 60);  // 写真番号
+    sheet.setColumnWidth(6, 120); // 部材
+    sheet.setColumnWidth(9, 120); // 変状
+    sheet.setColumnWidth(13, 80); // 数量
+    sheet.setColumnWidth(17, 200); // 備考
 }
 
 // JSONレスポンス生成（CORS対応）

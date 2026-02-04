@@ -487,7 +487,7 @@
         function addRecord(parsed) {
             const sheetName = getCurrentSheetName();
             const record = {
-                id: Date.now(), // ユニークID
+                id: Date.now(),
                 timestamp: new Date().toLocaleString('ja-JP'),
                 bridgeId: config.currentBridgeId,
                 bridgeName: getBridgeName(config.currentBridgeId),
@@ -495,14 +495,16 @@
                 member: parsed.member || '',
                 damageId: parsed.damageId || '',
                 damageName: parsed.damageName || '',
-                dimensions: parsed.dimensions.map(d => `${d.value}${d.unit}`).join('×'),
-                synced: false // 未送信状態
+                photoNo: parsed.photoNo || '',
+                prevRecord: parsed.prevRecord || '',
+                remarks: parsed.remarks || '',
+                dimensions: parsed.dimensions.join(' '), // 複数ある場合はスペース区切り等
+                synced: false
             };
 
-            appState.data.unshift(record); // 新しい順
+            appState.data.unshift(record);
             saveData();
 
-            // 即時送信を試みる
             if (navigator.onLine && config.gasUrl && document.getElementById('bridgeSelect').value) {
                 sendToCloud(record);
             }
@@ -530,7 +532,6 @@
             status.style.color = "blue";
 
             try {
-                // GASからリスト取得 (GET)
                 const res = await fetch(config.gasUrl + '?action=list');
                 const json = await res.json();
 
@@ -572,26 +573,28 @@
         async function sendToCloud(record) {
             if (!config.gasUrl || !record.bridgeId) return;
 
-            // 送信データ構築 (旧API互換)
+            // 送信データ構築 (17項目対応)
             const payload = {
                 fileId: record.bridgeId,
                 sheetName: record.sheetName,
-                id: "", // スプシ上のNoは自動採番にお任せでもよいが、空でおくる
+                // GAS側で自動採番するのでNoは送らない、または無視される
                 member: record.member,
-                damageId: record.damageId,
                 damageName: record.damageName,
-                dimensions: record.dimensions,
+                damageId: record.damageId, // IDを追加 (こちらを優先利用)
+                photoNo: record.photoNo,
+                prevRecord: record.prevRecord,
+                remarks: record.remarks,
+                dimensions: record.dimensions, // 数量(m)に入る
                 timestamp: record.timestamp
             };
 
             try {
                 const res = await fetch(config.gasUrl, {
                     method: 'POST',
-                    mode: 'text/plain', // GASのCORS回避定石
+                    mode: 'text/plain',
                     body: JSON.stringify(payload)
                 });
 
-                // 成功したらフラグ更新
                 record.synced = true;
                 saveData();
                 return true;
@@ -677,7 +680,10 @@
 
         function parseInput(text) {
             text = text.replace(/\s+/g, "");
-            let res = { member: "", damageId: "", damageName: "", dimensions: [] };
+            let res = { member: "", damageId: "", damageName: "", dimensions: [], photoNo: "", prevRecord: "", remarks: "" };
+
+            // 寸法の事前処理 ("かける" -> "*")
+            text = text.replace(/かける|×/g, "*");
 
             // 部材
             for (const m of memberKeywords) {
@@ -696,11 +702,71 @@
                     }
                 }
             }
-            // 寸法
+
+            // 写真番号 (写真 + 1~4桁の数字)
+            // 例: "写真123" "写真番号5"
+            const photoMatch = text.match(/(写真|写真番号)(\d{1,4})/);
+            if (photoMatch) {
+                res.photoNo = photoMatch[2];
+            }
+
+            // 前回調書 (前回/調書 + 3桁の数字)
+            const prevMatch = text.match(/(前回|調書|前回調書)(\d{3})/);
+            if (prevMatch) {
+                res.prevRecord = prevMatch[2];
+            }
+
+            // 備考 (備考 + 任意の文字列)
+            const remarkMatch = text.match(/備考(.+)/);
+            if (remarkMatch) {
+                res.remarks = remarkMatch[1];
+            }
+
+            // 寸法抽出 & 単位変換
+            // mm -> /1000してmにする
+            // m, cm -> そのまま数値or計算式として扱う (ユーザー要望: 数量(m)に入れる)
+            // 複雑な計算式 "2.0*3.0" なども抽出したいが、まずは数値+単位のパターン
+
+            // "数値*数値" のパターンも拾いたいので、まず単位付きを処理
+            // ここでは簡易的に、抽出された数値を配列に入れるのではなく、
+            // 「寸法」として認識された文字列を組み立てる
+            let dimList = [];
+
+            // 1. 単位付き
             for (const p of unitPatterns) {
                 const matches = [...text.matchAll(p.pattern)];
-                matches.forEach(m => res.dimensions.push({ value: m[1], unit: p.unit }));
+                matches.forEach(m => {
+                    let val = parseFloat(m[1]);
+                    if (p.unit === "mm" || m[2] === "ミリ") {
+                        val = val / 1000;
+                    } else if (p.unit === "cm" || m[2] === "センチ") {
+                        val = val / 100;
+                    }
+                    // m単位または単位変換後の値
+                    dimList.push(val);
+                });
             }
+
+            // 2. 計算式っぽいもの (単純な掛け算 "2.5*3.0" など)
+            // 単位がつかない場合もあるので、正規表現で "数字*数字" を探す
+            // float対応: \d+(\.\d+)?
+            const calcMatch = text.match(/(\d+(\.\d+)?)\*(\d+(\.\d+)?)/);
+            if (calcMatch) {
+                // そのままセット
+                dimList.push(`${calcMatch[1]}*${calcMatch[3]}`);
+            }
+
+            // 配列を結合してしまう (例: "0.5 2.0*3.0")
+            // ただし、unitPatternsで拾ったものとcalcMatchで拾ったものが重複する可能性に注意が必要。
+            // 今回はシンプルに、calcMatchがあれば優先、なければ単位付き、のようにしたいが...
+            // ユーザー要望「計算式あるいは数値」。
+            // 一旦、calcMatchがあればそれを、なければunitPatternsの結果を使う
+            if (calcMatch) {
+                res.dimensions.push(calcMatch[0]); // 文字列として
+            } else if (dimList.length > 0) {
+                res.dimensions = dimList; // 数値の配列
+            }
+
             return res;
         }
 
@@ -708,7 +774,11 @@
             let html = [];
             if (res.member) html.push(`<span class="tag tag-member">${res.member}</span>`);
             if (res.damageName) html.push(`<span class="tag tag-damage">${res.damageId}.${res.damageName}</span>`);
-            res.dimensions.forEach(d => html.push(`<span class="tag tag-dim">${d.value}${d.unit}</span>`));
+            if (res.photoNo) html.push(`<span class="tag" style="background:#555">📷${res.photoNo}</span>`);
+            if (res.prevRecord) html.push(`<span class="tag" style="background:#777">⏮️${res.prevRecord}</span>`);
+            if (res.dimensions.length > 0) html.push(`<span class="tag tag-dim">${res.dimensions.join(' ')}</span>`);
+            if (res.remarks) html.push(`<span class="tag" style="background:#999">📝${res.remarks}</span>`);
+
             parsedDiv.innerHTML = html.join(' ');
         }
 
@@ -763,9 +833,17 @@
                 appState.data.forEach(d => {
                     const tr = document.createElement('tr');
                     const statusIcon = d.synced ? '<span class="status-icon status-ok">☁️済</span>' : '<span class="status-icon status-wait">⚠️未</span>';
+
+                    // 表示内容を少しリッチに
+                    let details = [];
+                    if (d.photoNo) details.push(`📷${d.photoNo}`);
+                    if (d.prevRecord) details.push(`⏮️${d.prevRecord}`);
+                    if (d.dimensions) details.push(`📏${d.dimensions}`);
+                    if (d.remarks) details.push(`📝${d.remarks}`);
+
                     const content = `
                 <div style="font-weight:bold">${d.member} ${d.damageName}</div>
-                <div style="font-size:0.85em; color:#666;">${d.dimensions} <span style="margin-left:5px; background:#eee; padding:2px;">${d.sheetName}</span></div>
+                <div style="font-size:0.85em; color:#666;">${details.join(' ')} <span style="margin-left:5px; background:#eee; padding:2px;">${d.sheetName}</span></div>
             `;
 
                     tr.innerHTML = `
@@ -791,9 +869,10 @@
         function downloadCSV() {
             if (appState.data.length === 0) return;
             const bom = '\uFEFF';
-            const header = "日時,橋名,シート名,部材,変状ID,変状名,寸法,同期状態\n";
+            // 17項目に近い形で出すか、システム管理用として出すか。ここではシステム管理用+α
+            const header = "日時,橋名,シート名,部材,変状名,写真番号,前回調書,数量,備考,同期状態\n";
             const body = appState.data.map(d => {
-                return `"${d.timestamp}","${d.bridgeName}","${d.sheetName}","${d.member}","${d.damageId}","${d.damageName}","${d.dimensions}","${d.synced ? '済' : '未'}"`;
+                return `"${d.timestamp}","${d.bridgeName}","${d.sheetName}","${d.member}","${d.damageName}","${d.photoNo}","${d.prevRecord}","${d.dimensions}","${d.remarks}","${d.synced ? '済' : '未'}"`;
             }).join('\n');
 
             const blob = new Blob([bom + header + body], { type: "text/csv" });

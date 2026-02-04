@@ -137,8 +137,14 @@ function setupSheet(ss) {
     let sheet = ss.getSheets()[0];
     sheet.setName("下面"); // デフォルトで「下面」シートにしておく
 
-    // ヘッダー追加
-    const header = ["受信日時", "No", "部材", "変状番号", "変状名", "寸法", "入力時刻"];
+    // ヘッダー追加（17項目）
+    const header = [
+        "No.", "前回調書", "同ｱﾝｸﾞﾙ写", "写真番号", "応急措置写真",
+        "部材", "材料", "要素番号", "変状", "程度",
+        "ひび間隔", "ひび幅", "数量(m)", "判定", "進行",
+        "第三者被害", "備考"
+    ];
+
     sheet.getRange(1, 1, 1, header.length).setValues([header]);
 
     const headerRange = sheet.getRange(1, 1, 1, header.length);
@@ -147,8 +153,12 @@ function setupSheet(ss) {
     headerRange.setFontWeight("bold");
     sheet.setFrozenRows(1);
 
-    sheet.setColumnWidth(1, 150);
-    sheet.setColumnWidth(3, 100);
-    sheet.setColumnWidth(5, 150);
-    sheet.setColumnWidth(6, 120);
+    // 列幅調整
+    sheet.setColumnWidth(1, 50);  // No.
+    sheet.setColumnWidth(2, 60);  // 前回
+    sheet.setColumnWidth(4, 60);  // 写真番号
+    sheet.setColumnWidth(6, 120); // 部材
+    sheet.setColumnWidth(9, 120); // 変状
+    sheet.setColumnWidth(13, 80); // 数量
+    sheet.setColumnWidth(17, 200); // 備考
 }
