@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.7 (Space Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v1.8 (Length Fix) | Ready</div>
 
     <script>
         // ==========================================
@@ -861,13 +861,37 @@
                 // mはそのまま
 
                 res.dimensions.push(Math.round(val * 10000) / 10000);
+
+                // マッチした部分を消去して、後続の長さ判定で誤爆しないようにする
+                // execの進行に影響しないよう、置換はループ後あるいは...
+                // いや、replaceするとインデックスずれるので危険。
+                // placeholderにするか、あるいは単純に長さ判定のRegexを工夫するか。
+                // ここでは簡単に、rawTextから該当文字列を空白置換してしまう。
+                // ただし replace は最初の1つだけ消すので、ユニークな文字列ならOKだが...
+                // 安全策として、ここでは消さず、次のLength判定で「単位が後ろにないこと」を確認するRegexにする。
             }
 
+            // 既にユニット付きで処理された箇所を消す（簡易版）
+            // 上記ループとは別に replaceAll 的に消す
+            rawText = rawText.replace(/(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)/g, "");
+
             // 単位なしだが "長さ" "L" に続く数値
+            // 例: "長さ5" -> 5m, "長さ500" -> 0.5m (User request: m換算)
             const lengthMatch = rawText.match(/(長さ|L)\s*(\d+(\.\d+)?)/);
             if (lengthMatch) {
-                // ★アプローチ変更:
-                // rawText から unitRegex にマッチした部分を削除してから、長さマッチを行う
+                let val = parseFloat(lengthMatch[2]);
+
+                // 換算ロジック (ヒューリスティック)
+                // 10以上ならmmとみなしてmに変換する (現場慣習)
+                // 0.5 -> 0.5m
+                // 500 -> 0.5m
+                // 5 -> 5m (これは微妙だが、通常5mのひび割れは長い。5mmなら0.005)
+                // 閾値をどうするか？とりあえず「整数で10以上」あるいは「数値として10以上」ならmm扱いにする？
+                if (val >= 10) {
+                    val = val / 1000;
+                }
+
+                res.dimensions.push(Math.round(val * 10000) / 10000);
             }
 
             return res;
