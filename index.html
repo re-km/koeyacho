@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.5 (Parsing Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v1.7 (Space Fix) | Ready</div>
 
     <script>
         // ==========================================
@@ -744,14 +744,15 @@
         }
 
         function parseInput(text) {
-            // 空白除去と正規化
-            let rawText = text.replace(/\s+/g, "");
+            // 空白除去ではなく正規化 (連続する空白を1つに)
+            // これにより "0.1 0.5" が "0.10.5" になるのを防ぐ
+            let rawText = text.replace(/\s+/g, " ").trim();
             // "かける" -> "*"
             rawText = rawText.replace(/かける|×/g, "*");
 
             let res = {
                 member: "",
-                elementNumber: "", // 新追加
+                elementNumber: "",
                 damageId: "",
                 damageName: "",
                 dimensions: [],
@@ -763,9 +764,8 @@
 
             // 1. 部材の抽出
             for (const m of memberKeywords) {
-                // 正規表現で、部材名＋(英数字ハイフン) を探す
-                // 例: "床版01" -> match[0]="床版01", match[1]="01"
-                const regex = new RegExp(m + "([A-Za-z0-9\\-]+)?");
+                // 正規表現で、部材名＋(任意の空白)＋(英数字ハイフン) を探す
+                const regex = new RegExp(m + "\\s*([A-Za-z0-9\\-]+)?");
                 const match = rawText.match(regex);
                 if (match) {
                     res.member = m; // 部材名はキーワードそのもの
@@ -778,7 +778,7 @@
 
             // 2. 変状の抽出
             // 番号指定 ("1番", "6号" など)
-            const numMatch = rawText.match(/(\d+)(番|号)/);
+            const numMatch = rawText.match(/(\d+)\s*(番|号)/);
             if (numMatch && damageTypes[numMatch[1]]) {
                 res.damageId = numMatch[1];
                 res.damageName = damageTypes[numMatch[1]];
@@ -786,16 +786,8 @@
 
             // 名前指定
             if (!res.damageName) {
-                // 文脈依存の優先順位: promptによると「ひび割れ」と言われたら「ひび割れ」。
-                // キーワードリスト対照
                 for (const d of damageKeywords) {
-                    // エイリアスも含めてチェック
                     if (rawText.includes(d.name) || d.aliases.some(a => rawText.includes(a))) {
-                        // "亀裂"と言われてもユーザーが"ひび割れ"と意図している場合の正規化はJS側では難しいが、
-                        // Promptの指示「絶対に亀裂と変換しない」は「AIが勝手に亀裂と言い換えるな」という意味。
-                        // ユーザーが「亀裂」と言った場合はリストにある通り「亀裂(2)」で良いはずだが、
-                        // Promptには「ユーザがひび割れと言ったら必ずひび割れ」とある。
-                        // ここは辞書通りにマッピングする。
                         res.damageId = d.id;
                         res.damageName = d.name;
                         break;
@@ -803,62 +795,59 @@
                 }
             }
 
-            // 3. 写真番号 ("写真10", "写真番号20")
-            const photoMatch = rawText.match(/(写真|写真番号)(\d{1,4})/);
+            // 3. 写真番号 ("写真10", "写真番号 20")
+            const photoMatch = rawText.match(/(写真|写真番号)\s*(\d{1,4})/);
             if (photoMatch) {
                 res.photoNo = photoMatch[2];
             }
 
-            // 4. 前回調書 ("前回100", "調書100")
-            const prevMatch = rawText.match(/(前回|調書|前回調書)(\d{3})/);
+            // 4. 前回調書 ("前回100", "調書 100")
+            const prevMatch = rawText.match(/(前回|調書|前回調書)\s*(\d{3})/);
             if (prevMatch) {
                 res.prevRecord = prevMatch[2];
             }
 
             // 5. 備考 ("備考〜")
-            const remarkMatch = rawText.match(/備考(.+)/);
+            const remarkMatch = rawText.match(/備考\s*(.+)/);
             if (remarkMatch) {
                 res.remarks = remarkMatch[1];
             }
 
             // 6. ひび幅 (crackWidth) の抽出
-            // ルール: "幅 0.2ミリ" -> "0.2mm" (換算なし)
-            // パターン: "幅" + 数値 + (単位)?
-            const widthMatch = rawText.match(/幅(\d+(\.\d+)?)(ミリ|mm|)/);
+            // "幅 0.2ミリ" -> "幅" + 空白? + 数値 + 空白? + 単位?
+            const widthMatch = rawText.match(/幅\s*(\d+(\.\d+)?)\s*(ミリ|mm|)/);
             if (widthMatch) {
                 let val = widthMatch[1];
                 let unit = widthMatch[3] || "";
-                // 単位がなければ補完する？ Promptは「単位変換なし」と言っている
-                // 入力が「幅0.1」なら「0.1」。 「幅0.1ミリ」なら「0.1mm」または「0.1」
-                // ここでは数値のみ抽出して出力するか、mmをつけるか。
-                // system_promptの例: "crackWidth": "0.2mm" とあるので単位をつけるのが無難だが、
-                // GAS側は文字列として受け取るので自由。
-                // 単位が指定されていればそのまま、なければそのまま数値を入れる。
+
                 if (unit === "ミリ") unit = "mm";
                 res.crackWidth = val + unit;
 
                 // 抽出済みの部分は後続の寸法処理で拾わないように置換して消しておく
-                // (例: "幅0.2" を消す)
+                // マッチした全体を削除
+                // rawTextはスペース区切りになっているので、置換時は注意が必要だが、
+                // widthMatch[0] は実際にマッチした文字列なのでそのまま replace で消せるはず
                 rawText = rawText.replace(widthMatch[0], "");
             }
 
             // 7. 数量 (dimensions) の抽出
-            // ルール: mはそのまま、cm/mmはmに換算。
-            // 長さ(L)や面積、あるいは文脈のない数値。
 
-            // まず計算式パターン "2.0*3.0"
-            const calcMatch = rawText.match(/(\d+(\.\d+)?)\*(\d+(\.\d+)?)/);
+            // まず計算式パターン "2.0 * 3.0" (空白許容)
+            // \s* を挟む
+            const calcMatch = rawText.match(/(\d+(\.\d+)?)\s*\*\s*(\d+(\.\d+)?)/);
             if (calcMatch) {
-                res.dimensions.push(calcMatch[0]); // 文字列として保持
-                // 置換して消す
+                // 空白を含んでいる可能性があるので、整形して保存
+                // calcMatch[0]="2.0 * 3.0" -> "2.0*3.0"
+                res.dimensions.push(calcMatch[0].replace(/\s+/g, ""));
+
                 rawText = rawText.replace(calcMatch[0], "");
             }
 
             // 残りの数値+単位、あるいは "長さXX"
-            // "長さ" or "L" が直前にある、または単位がついているものを探す
 
             // 単位付きの検出 (mm, cm, m)
-            const unitRegex = /(\d+(\.\d+)?)(ミリ|mm|センチ|cm|メートル|m)/g;
+            // グローバルマッチなので、execループで回す
+            const unitRegex = /(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)/g;
             let m;
             while ((m = unitRegex.exec(rawText)) !== null) {
                 let val = parseFloat(m[1]);
@@ -871,25 +860,12 @@
                 }
                 // mはそのまま
 
-                // 有効数字等は適当だが、文字列化して格納
-                // 0.500000001のようにならないよう丸める？ 一旦そのまま
-                // ただし整数なら整数で。
                 res.dimensions.push(Math.round(val * 10000) / 10000);
             }
 
             // 単位なしだが "長さ" "L" に続く数値
-            // 例: "長さ5" -> 5mとみなす
-            const lengthMatch = rawText.match(/(長さ|L)(\d+(\.\d+)?)/);
+            const lengthMatch = rawText.match(/(長さ|L)\s*(\d+(\.\d+)?)/);
             if (lengthMatch) {
-                // すでにunitRegexで拾われている可能性はあるが、
-                // unitRegexは単位必須にしたので、ここは単位なし専用
-                // "長さ5メートル" は unitRegex で "5m" として拾われるが、"長さ"という文字は残る。
-                // "長さ5" という文字列が残っていれば拾う
-                // しかし unitRegex で数値を消費済みだと "長さメートル" みたいに残る？
-                // いや、unitRegexは global なので、マッチした部分だけ消費とはならない(execはindex進めるだけ)
-                // 確実にするため、抽出済みの箇所をrawTextから消していくアプローチの方が安全だが、
-                // ここでは簡易的に「単位なし数値」かつ「長さプレフィクスあり」を拾う。
-
                 // ★アプローチ変更:
                 // rawText から unitRegex にマッチした部分を削除してから、長さマッチを行う
             }
