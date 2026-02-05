@@ -470,6 +470,39 @@
         </div>
     </div>
 
+    <!-- 編集モーダル (Nested or Overlay) -->
+    <div id="editModal" class="modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2100; align-items:center; justify-content:center;">
+        <div class="card"
+            style="width:90%; max-width:400px; margin: auto; max-height:90vh; overflow-y:auto; background:#fff;">
+            <h3>✏️ 記録の編集</h3>
+            <input type="hidden" id="editId">
+
+            <label style="font-size:0.8em; font-weight:bold;">部材</label>
+            <input type="text" id="editMember" class="input-text">
+
+            <label style="font-size:0.8em; font-weight:bold;">要素番号</label>
+            <input type="text" id="editElementNumber" class="input-text">
+
+            <label style="font-size:0.8em; font-weight:bold;">変状名</label>
+            <input type="text" id="editDamageName" class="input-text">
+
+            <label style="font-size:0.8em; font-weight:bold;">ひび幅 (W)</label>
+            <input type="text" id="editCrackWidth" class="input-text">
+
+            <label style="font-size:0.8em; font-weight:bold;">数量/寸法 (L)</label>
+            <input type="text" id="editDimensions" class="input-text">
+
+            <label style="font-size:0.8em; font-weight:bold;">備考</label>
+            <input type="text" id="editRemarks" class="input-text">
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button class="btn-outline" onclick="closeEditModal()">キャンセル</button>
+                <button class="btn-success" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==========================================
         // コンフィグ & ステート
