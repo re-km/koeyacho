@@ -1167,14 +1167,65 @@
                             <br><span style="font-size:0.8em; color:#999">${d.remarks || ''}</span>
                         </td>
                         <td style="padding:8px;">${valStr}</td>
-                        <td style="padding:8px;">
-                            <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:2px 6px; font-size:0.8em; color:#e74c3c;"
+                        <td style="padding:8px; white-space:nowrap;">
+                            <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:4px 8px; font-size:0.8em; color:#007acc; margin-right:5px;" 
+                                onclick="openEditModal(${d.id})">編集</button>
+                            <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:4px 8px; font-size:0.8em; color:#e74c3c;" 
                                 onclick="deleteRecord('${d.timestamp}')">削除</button>
                         </td>
                         `;
                 tbody.appendChild(tr);
             });
         }
+
+        // --- Edit Modal Functions ---
+        function openEditModal(id) {
+            const record = appState.data.find(d => d.id === id);
+            if (!record) return;
+
+            document.getElementById('editId').value = id;
+            document.getElementById('editMember').value = record.member || '';
+            document.getElementById('editElementNumber').value = record.elementNumber || '';
+            document.getElementById('editDamageName').value = record.damageName || '';
+            document.getElementById('editCrackWidth').value = record.crackWidth || '';
+            document.getElementById('editDimensions').value = record.dimensions || ''; // String update
+            document.getElementById('editRemarks').value = record.remarks || '';
+
+            const modal = document.getElementById('editModal');
+            modal.style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function saveEdit() {
+            const id = parseInt(document.getElementById('editId').value);
+            const record = appState.data.find(d => d.id === id);
+            if (!record) return;
+
+            // Update record
+            record.member = document.getElementById('editMember').value;
+            record.elementNumber = document.getElementById('editElementNumber').value;
+            record.damageName = document.getElementById('editDamageName').value;
+            record.crackWidth = document.getElementById('editCrackWidth').value;
+            record.dimensions = document.getElementById('editDimensions').value; // String update
+            record.remarks = document.getElementById('editRemarks').value;
+            record.synced = false; // Mark as unsynced so it can be re-uploaded
+
+            saveDataLocally(); // Calls updateUI -> saveData
+
+            closeEditModal();
+            renderDataTable(); // Refresh DM
+            updateUI(); // Refresh Main UI
+        }
+
+        // Helper helper to save (duplicate of functionality in saveData but direct call safe)
+        function saveDataLocally() {
+            localStorage.setItem('inspectionData', JSON.stringify(appState.data));
+            // Also trigger simple UI update if needed, but updateUI() does sync alert check
+        }
+        // -----------------------------
 
         function deleteRecord(timestamp) {
             if (!confirm('本当にこの記録を削除しますか？')) return;
