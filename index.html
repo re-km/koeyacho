@@ -357,7 +357,6 @@
             <select id="bridgeSelect" class="flex-grow">
                 <option value="">橋を選択してください</option>
             </select>
-            <button class="btn-outline" onclick="fetchBridgeList()">🔄</button>
         </div>
         <div class="select-row">
             <select id="partSelect" class="flex-grow">
@@ -369,7 +368,9 @@
             </select>
             <input type="number" id="spanInput" placeholder="径間" style="width: 80px;">
         </div>
-        <div style="text-align:right;">
+        <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:5px;">
+            <button class="btn-outline" onclick="fetchBridgeList()" style="padding:4px 8px; font-size:0.9em;">🔄
+                同期</button>
             <span class="sheet-badge">Sheet: <span id="currentSheetName">下面</span></span>
         </div>
     </div>
@@ -410,7 +411,54 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.10 (CSV Update) | Ready</div>
+    <div class="footer" id="systemStatus">v2.0 (Offline Mgr) | Ready</div>
+
+
+    <!-- データ管理モーダル -->
+    <div id="dataManagerModal" class="modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; overflow-y:auto;">
+        <div style="padding:15px; max-width:800px; margin:0 auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2>📊 データ管理</h2>
+                <button class="btn-outline" onclick="closeDataManager()" style="padding:5px 15px;">閉じる</button>
+            </div>
+
+            <div class="card" style="background:#f8f9fa;">
+                <label style="font-size:0.8em; font-weight:bold;">絞り込み (フィルタ)</label>
+                <div style="display:flex; gap:10px; margin-top:5px; flex-wrap:wrap;">
+                    <select id="dmFilterBridge" class="input-text" style="margin:0; flex:1;"
+                        onchange="updateSheetFilter()">
+                        <option value="">全ての橋</option>
+                    </select>
+                    <select id="dmFilterSheet" class="input-text" style="margin:0; flex:1;"
+                        onchange="renderDataTable()">
+                        <option value="">全てのシート</option>
+                    </select>
+                </div>
+                <div style="margin-top:10px; text-align:right;">
+                    <button class="btn-outline" onclick="exportFilteredCSV()">📥 表示中データをCSV出力</button>
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table id="dmTable" style="width:100%; border-collapse:collapse; font-size:0.85em;">
+                    <thead>
+                        <tr style="background:#eee; text-align:left;">
+                            <th style="padding:8px; border-bottom:2px solid #ddd;">No</th>
+                            <th style="padding:8px; border-bottom:2px solid #ddd;">部材/要素</th>
+                            <th style="padding:8px; border-bottom:2px solid #ddd;">変状</th>
+                            <th style="padding:8px; border-bottom:2px solid #ddd;">値(幅/数)</th>
+                            <th style="padding:8px; border-bottom:2px solid #ddd;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dmTableBody"></tbody>
+                </table>
+            </div>
+            <div id="dmEmpty" style="text-align:center; padding:30px; color:#aaa; display:none;">
+                データがありません
+            </div>
+        </div>
+    </div>
 
     <script>
         // ==========================================
@@ -1014,24 +1062,399 @@
             countSpan.textContent = appState.data.length;
         }
 
-        function downloadCSV() {
-            if (appState.data.length === 0) return;
+
+
+        // ... (Existing variables) ...
+        // Initialize Data Manager Button
+        const settingsBody = document.getElementById('settingsBody');
+        const dmBtn = document.createElement('button');
+        dmBtn.className = 'btn-outline';
+        dmBtn.style.width = '100%';
+        dmBtn.style.marginTop = '10px';
+        dmBtn.innerHTML = '📊 データ管理 (オフライン)';
+        dmBtn.onclick = openDataManager;
+        settingsBody.appendChild(dmBtn);
+
+
+        // ==========================================
+        //  Data Manager Logic
+        // ==========================================
+        function openDataManager() {
+            document.getElementById('dataManagerModal').style.display = 'block';
+
+            // 橋フィルタの更新
+            const bridgeSet = new Set(appState.data.map(d => d.bridgeName).filter(n => n));
+            const diffSelect = document.getElementById('dmFilterBridge');
+            diffSelect.innerHTML = '<option value="">全ての橋</option>';
+            bridgeSet.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                diffSelect.appendChild(opt);
+            });
+
+            updateSheetFilter(); // シートフィルタも初期化
+        }
+
+        function closeDataManager() {
+            document.getElementById('dataManagerModal').style.display = 'none';
+        }
+
+        function updateSheetFilter() {
+            const selectedBridge = document.getElementById('dmFilterBridge').value;
+            const sheetSelect = document.getElementById('dmFilterSheet');
+            sheetSelect.innerHTML = '<option value="">全てのシート</option>';
+
+            // 選択された橋（または全データ）に含まれるシート名を抽出
+            let targetData = appState.data;
+            if (selectedBridge) {
+                targetData = targetData.filter(d => d.bridgeName === selectedBridge);
+            }
+
+            const sheetSet = new Set(targetData.map(d => d.sheetName).filter(n => n));
+            // ソートして追加
+            Array.from(sheetSet).sort().forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                sheetSelect.appendChild(opt);
+            });
+
+            renderDataTable();
+        }
+
+        function renderDataTable() {
+            const bridgeFilter = document.getElementById('dmFilterBridge').value;
+            const sheetFilter = document.getElementById('dmFilterSheet').value;
+            const tbody = document.getElementById('dmTableBody');
+            const emptyDiv = document.getElementById('dmEmpty');
+
+            tbody.innerHTML = '';
+
+            // フィルタリング
+            const filtered = appState.data.filter(d => {
+                if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
+                if (sheetFilter && d.sheetName !== sheetFilter) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                emptyDiv.style.display = 'block';
+                return;
+            }
+            emptyDiv.style.display = 'none';
+
+            // テーブル描画 (降順: 新しい順)
+            [...filtered].reverse().forEach((d, idx) => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #eee';
+
+                // 表示用データの整形
+                const elemStr = d.elementNumber ? `<br><span style="font-size:0.8em; color:#666">#${d.elementNumber}</span>` : '';
+                const widthStr = d.crackWidth ? `W:${d.crackWidth}` : '';
+                const dimStr = (d.dimensions && d.dimensions.length > 0) ? `L:${d.dimensions}` : '';
+                const valStr = [widthStr, dimStr].filter(x => x).join('<br>');
+
+                tr.innerHTML = `
+                        <td style="padding:8px;">${filtered.length - idx}</td>
+                        <td style="padding:8px;">${d.member}${elemStr}</td>
+                        <td style="padding:8px;">
+                            ${d.damageName}
+                            <br><span style="font-size:0.8em; color:#999">${d.remarks || ''}</span>
+                        </td>
+                        <td style="padding:8px;">${valStr}</td>
+                        <td style="padding:8px;">
+                            <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:2px 6px; font-size:0.8em; color:#e74c3c;"
+                                onclick="deleteRecord('${d.timestamp}')">削除</button>
+                        </td>
+                        `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteRecord(timestamp) {
+            if (!confirm('本当にこの記録を削除しますか？')) return;
+            appState.data = appState.data.filter(d => d.timestamp !== timestamp);
+            saveDataLocally();
+            renderDataTable();
+            updateUI(); // メイン画面も更新
+        }
+
+        function exportFilteredCSV() {
+            const bridgeFilter = document.getElementById('dmFilterBridge').value;
+            const sheetFilter = document.getElementById('dmFilterSheet').value;
+
+            const filtered = appState.data.filter(d => {
+                if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
+                if (sheetFilter && d.sheetName !== sheetFilter) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                alert('出力対象のデータがありません');
+                return;
+            }
+
             const bom = '\uFEFF';
-            // 全項目を出力
-            const header = "日時,橋名,橋ID,シート名,部材,要素番号,変状名,変状ID,ひび幅,数量,写真番号,前回調書,備考,同期状態\n";
-            const body = appState.data.map(d => {
-                // null/undefined対策
+            // GAS互換カラム定義
+            // 1.橋名(管理), 2.シート名(管理), 3.No〜19.備考
+            const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
+
+            const body = filtered.map((d, i) => {
                 const safe = (v) => (v === undefined || v === null) ? "" : v;
-                return `"${safe(d.timestamp)}","${safe(d.bridgeName)}","${safe(d.bridgeId)}","${safe(d.sheetName)}","${safe(d.member)}","${safe(d.elementNumber)}","${safe(d.damageName)}","${safe(d.damageId)}","${safe(d.crackWidth)}","${safe(d.dimensions)}","${safe(d.photoNo)}","${safe(d.prevRecord)}","${safe(d.remarks)}","${d.synced ? '済' : '未'}"`;
+                // Noは単なる連番(1基点)
+                const no = i + 1;
+
+                // GAS互換配列作成
+                const cols = [
+                    safe(d.bridgeName),
+                    safe(d.sheetName),
+                    no,                     // 1. No
+                    safe(d.prevRecord),     // 2. 前回調書
+                    "",                     // 3. 同アングル
+                    safe(d.photoNo),        // 4. 写真番号
+                    "",                     // 5. 応急措置
+                    safe(d.member),         // 6. 部材
+                    "",                     // 7. 材料
+                    safe(d.elementNumber),  // 8. 要素番号
+                    safe(d.damageName),     // 9. 変状 (Name) ※User指定により修正
+                    "",                     // 10. 程度
+                    "",                     // 11. ひび間隔
+                    safe(d.crackWidth),     // 12. ひび幅
+                    safe(d.dimensions),     // 13. 数量
+                    "",                     // 14. 判定
+                    "",                     // 15. 進行
+                    "",                     // 16. 第三者
+                    safe(d.remarks)         // 17. 備考
+                ];
+
+                return cols.map(c => `"${c}"`).join(',');
             }).join('\n');
 
             const blob = new Blob([bom + header + body], { type: "text/csv" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `tenken_export_${new Date().toISOString().slice(0, 10)}.csv`;
+
+            // ファイル名生成
+            // フィルタされていればその名前を使う
+            let filename = `tenken_export`;
+            if (filtered.length > 0 && bridgeFilter) {
+                filename += `_${bridgeFilter}`;
+                if (sheetFilter) filename += `_${sheetFilter}`;
+            } else {
+                filename += `_all`;
+            }
+            filename += `_${new Date().toISOString().slice(0, 10)}.csv`;
+
+            a.download = filename;
             a.click();
         }
+
+        // downloadCSV (Footer Button) -> Redirect to new logic (All Data)
+        function downloadCSV() {
+            // 既存のボタンが押されたら、全データ出力として処理
+            // UI上の値を変えず内部的に呼び出す
+            const originalData = appState.data;
+            // フィルタなしとみなして実行したいが、関数がDOM依存している。
+            // 簡易的に全データ出力用関数を分けるか、
+            // openDataManager -> All -> Export のフローを推奨するか。
+            // ここでは既存ボタンは「簡易バックアップ」として残し、新ロジックを使う形に修正。
+
+            if (appState.data.length === 0) return;
+
+            // 既存ロジックを新フォーマットに合わせる (Bridge, Sheet, ... GAS cols)
+            // 共通化する
+
+
+            // Initialize Data Manager Button
+            document.addEventListener('DOMContentLoaded', () => {
+                const settingsBody = document.getElementById('settingsBody');
+                if (settingsBody) {
+                    const dmBtn = document.createElement('button');
+                    dmBtn.className = 'btn-outline';
+                    dmBtn.style.width = '100%';
+                    dmBtn.style.marginTop = '10px';
+                    dmBtn.innerHTML = '📊 データ管理 (オフライン)';
+                    dmBtn.onclick = openDataManager;
+                    settingsBody.appendChild(dmBtn);
+                }
+            });
+
+            // ==========================================
+            //  Data Manager Logic
+            // ==========================================
+            function openDataManager() {
+                document.getElementById('dataManagerModal').style.display = 'block';
+
+                const bridgeSet = new Set(appState.data.map(d => d.bridgeName).filter(n => n));
+                const diffSelect = document.getElementById('dmFilterBridge');
+                diffSelect.innerHTML = '<option value="">全ての橋</option>';
+                bridgeSet.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b;
+                    opt.textContent = b;
+                    diffSelect.appendChild(opt);
+                });
+
+                updateSheetFilter();
+            }
+
+            function closeDataManager() {
+                document.getElementById('dataManagerModal').style.display = 'none';
+            }
+
+            function updateSheetFilter() {
+                const selectedBridge = document.getElementById('dmFilterBridge').value;
+                const sheetSelect = document.getElementById('dmFilterSheet');
+                sheetSelect.innerHTML = '<option value="">全てのシート</option>';
+
+                let targetData = appState.data;
+                if (selectedBridge) {
+                    targetData = targetData.filter(d => d.bridgeName === selectedBridge);
+                }
+
+                const sheetSet = new Set(targetData.map(d => d.sheetName).filter(n => n));
+                Array.from(sheetSet).sort().forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    sheetSelect.appendChild(opt);
+                });
+
+                renderDataTable();
+            }
+
+            function renderDataTable() {
+                const bridgeFilter = document.getElementById('dmFilterBridge').value;
+                const sheetFilter = document.getElementById('dmFilterSheet').value;
+                const tbody = document.getElementById('dmTableBody');
+                const emptyDiv = document.getElementById('dmEmpty');
+
+                tbody.innerHTML = '';
+
+                const filtered = appState.data.filter(d => {
+                    if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
+                    if (sheetFilter && d.sheetName !== sheetFilter) return false;
+                    return true;
+                });
+
+                if (filtered.length === 0) {
+                    emptyDiv.style.display = 'block';
+                    return;
+                }
+                emptyDiv.style.display = 'none';
+
+                [...filtered].reverse().forEach((d, idx) => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #eee';
+
+                    const elemStr = d.elementNumber ? `<br><span style="font-size:0.8em; color:#666">#${d.elementNumber}</span>` : '';
+                    const widthStr = d.crackWidth ? `W:${d.crackWidth}` : '';
+                    const dimStr = (d.dimensions && d.dimensions.length > 0) ? `L:${d.dimensions}` : '';
+
+                    const valStr = [widthStr, dimStr].filter(Boolean).join('<br>');
+
+                    tr.innerHTML = `
+                                <td style="padding:8px;">${filtered.length - idx}</td>
+                                <td style="padding:8px;">${d.member}${elemStr}</td>
+                                <td style="padding:8px;">
+                                    ${d.damageName}
+                                    <br><span style="font-size:0.8em; color:#999">${d.remarks || ''}</span>
+                                </td>
+                                <td style="padding:8px;">${valStr}</td>
+                                <td style="padding:8px;">
+                                    <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:2px 6px; font-size:0.8em; color:#e74c3c;" onclick="deleteRecord('${d.timestamp}')">削除</button>
+                                </td>
+                                `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function deleteRecord(timestamp) {
+                if (!confirm('本当にこの記録を削除しますか？')) return;
+                appState.data = appState.data.filter(d => d.timestamp !== timestamp);
+                saveDataLocally();
+                renderDataTable();
+                updateUI();
+            }
+
+            function exportFilteredCSV() {
+                const bridgeFilter = document.getElementById('dmFilterBridge').value;
+                const sheetFilter = document.getElementById('dmFilterSheet').value;
+
+                const filtered = appState.data.filter(d => {
+                    if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
+                    if (sheetFilter && d.sheetName !== sheetFilter) return false;
+                    return true;
+                });
+
+                if (filtered.length === 0) {
+                    alert('出力対象のデータがありません');
+                    return;
+                }
+
+                const bom = '\uFEFF';
+                const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
+
+                const body = filtered.map((d, i) => {
+                    const safe = (v) => (v === undefined || v === null) ? "" : v;
+                    const cols = [
+                        safe(d.bridgeName),
+                        safe(d.sheetName),
+                        i + 1,
+                        safe(d.prevRecord), "", safe(d.photoNo), "",
+                        safe(d.member), "", safe(d.elementNumber),
+                        safe(d.damageName),
+                        "", "", safe(d.crackWidth), safe(d.dimensions),
+                        "", "", "", safe(d.remarks)
+                    ];
+                    return cols.map(c => `"${c}"`).join(',');
+                }).join('\n');
+
+                const blob = new Blob([bom + header + body], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                let filename = 'tenken_export';
+                if (filtered.length > 0 && bridgeFilter) {
+                    filename += '_' + bridgeFilter;
+                    if (sheetFilter) filename += '_' + sheetFilter;
+                } else {
+                    filename += '_all';
+                }
+                filename += '_' + new Date().toISOString().slice(0, 10) + '.csv';
+
+                a.download = filename;
+                a.click();
+            }
+
+            function downloadCSV() {
+                if (appState.data.length === 0) return;
+
+                const bom = '\uFEFF';
+                const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
+                const body = appState.data.map((d, i) => {
+                    const safe = (v) => (v === undefined || v === null) ? "" : v;
+                    const cols = [
+                        safe(d.bridgeName), safe(d.sheetName), i + 1,
+                        safe(d.prevRecord), "", safe(d.photoNo), "",
+                        safe(d.member), "", safe(d.elementNumber),
+                        safe(d.damageName),
+                        "", "", safe(d.crackWidth), safe(d.dimensions),
+                        "", "", "", safe(d.remarks)
+                    ];
+                    return cols.map(c => `"${c}"`).join(',');
+                }).join('\n');
+
+                const blob = new Blob([bom + header + body], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'tenken_full_backup_' + new Date().toISOString().slice(0, 10) + '.csv';
+                a.click();
+            }
     </script>
 </body>
 
