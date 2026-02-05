@@ -414,6 +414,13 @@
         </div>
     </div>
 
+    <!-- データ管理ボタン (Footer) -->
+    <div style="margin-top: 20px; text-align: center;">
+        <button class="btn-outline" onclick="openDataManager()" style="width:100%; max-width:400px; padding:10px;">
+            📊 保存データを確認・編集 (データ管理)
+        </button>
+    </div>
+
     <div class="footer" id="systemStatus">v2.1 (Offline Mgr) | Ready</div>
 
 
@@ -1068,15 +1075,9 @@
 
 
         // ... (Existing variables) ...
-        // Initialize Data Manager Button
-        const settingsBody = document.getElementById('settingsBody');
-        const dmBtn = document.createElement('button');
-        dmBtn.className = 'btn-outline';
-        dmBtn.style.width = '100%';
-        dmBtn.style.marginTop = '10px';
-        dmBtn.innerHTML = '📊 データ管理 (オフライン)';
-        dmBtn.onclick = openDataManager;
-        settingsBody.appendChild(dmBtn);
+        // ... (Existing variables) ...
+        // Initialize Data Manager Button (Moved to static HTML in footer)
+
 
 
         // ==========================================
