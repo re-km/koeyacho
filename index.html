@@ -478,26 +478,87 @@
             <h3>✏️ 記録の編集</h3>
             <input type="hidden" id="editId">
 
-            <label style="font-size:0.8em; font-weight:bold;">前回調書</label>
-            <input type="text" id="editPrevRecord" class="input-text">
+            <!-- Row 1: Context/Photos -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">前回調書</label>
+                    <input type="text" id="editPrevRecord" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">写真番号</label>
+                    <input type="text" id="editPhotoNo" class="input-text">
+                </div>
+            </div>
 
-            <label style="font-size:0.8em; font-weight:bold;">写真番号</label>
-            <input type="text" id="editPhotoNo" class="input-text">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">同アングル写</label>
+                    <input type="text" id="editSameAngle" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">応急措置写</label>
+                    <input type="text" id="editEmergency" class="input-text">
+                </div>
+            </div>
 
-            <label style="font-size:0.8em; font-weight:bold;">部材</label>
-            <input type="text" id="editMember" class="input-text">
+            <!-- Row 2: Member Info -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">部材</label>
+                    <input type="text" id="editMember" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">材料</label>
+                    <input type="text" id="editMaterial" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">要素番号</label>
+                    <input type="text" id="editElementNumber" class="input-text">
+                </div>
+            </div>
 
-            <label style="font-size:0.8em; font-weight:bold;">要素番号</label>
-            <input type="text" id="editElementNumber" class="input-text">
+            <!-- Row 3: Damage Info -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">変状名</label>
+                    <input type="text" id="editDamageName" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">程度</label>
+                    <input type="text" id="editDegree" class="input-text">
+                </div>
+            </div>
 
-            <label style="font-size:0.8em; font-weight:bold;">変状名</label>
-            <input type="text" id="editDamageName" class="input-text">
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">ひび間隔</label>
+                    <input type="text" id="editCrackSpacing" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">ひび幅</label>
+                    <input type="text" id="editCrackWidth" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">数量(L)</label>
+                    <input type="text" id="editDimensions" class="input-text">
+                </div>
+            </div>
 
-            <label style="font-size:0.8em; font-weight:bold;">ひび幅 (W)</label>
-            <input type="text" id="editCrackWidth" class="input-text">
-
-            <label style="font-size:0.8em; font-weight:bold;">数量/寸法 (L)</label>
-            <input type="text" id="editDimensions" class="input-text">
+            <!-- Row 4: Assessment -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">判定</label>
+                    <input type="text" id="editJudgment" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">進行</label>
+                    <input type="text" id="editProgress" class="input-text">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; font-weight:bold;">第三者被害</label>
+                    <input type="text" id="editThirdParty" class="input-text">
+                </div>
+            </div>
 
             <label style="font-size:0.8em; font-weight:bold;">備考</label>
             <input type="text" id="editRemarks" class="input-text">
@@ -1235,11 +1296,24 @@
             document.getElementById('editId').value = id;
             document.getElementById('editPrevRecord').value = record.prevRecord || '';
             document.getElementById('editPhotoNo').value = record.photoNo || '';
+            document.getElementById('editSameAngle').value = record.sameAngle || '';
+            document.getElementById('editEmergency').value = record.emergency || '';
+
             document.getElementById('editMember').value = record.member || '';
+            document.getElementById('editMaterial').value = record.material || '';
             document.getElementById('editElementNumber').value = record.elementNumber || '';
+
             document.getElementById('editDamageName').value = record.damageName || '';
+            document.getElementById('editDegree').value = record.degree || '';
+
+            document.getElementById('editCrackSpacing').value = record.crackSpacing || '';
             document.getElementById('editCrackWidth').value = record.crackWidth || '';
-            document.getElementById('editDimensions').value = record.dimensions || ''; // String update
+            document.getElementById('editDimensions').value = record.dimensions || '';
+
+            document.getElementById('editJudgment').value = record.judgment || '';
+            document.getElementById('editProgress').value = record.progress || '';
+            document.getElementById('editThirdParty').value = record.thirdParty || '';
+
             document.getElementById('editRemarks').value = record.remarks || '';
 
             modal.style.display = 'flex';
@@ -1257,11 +1331,24 @@
             // Update record
             record.prevRecord = document.getElementById('editPrevRecord').value;
             record.photoNo = document.getElementById('editPhotoNo').value;
+            record.sameAngle = document.getElementById('editSameAngle').value;
+            record.emergency = document.getElementById('editEmergency').value;
+
             record.member = document.getElementById('editMember').value;
+            record.material = document.getElementById('editMaterial').value;
             record.elementNumber = document.getElementById('editElementNumber').value;
+
             record.damageName = document.getElementById('editDamageName').value;
+            record.degree = document.getElementById('editDegree').value;
+
+            record.crackSpacing = document.getElementById('editCrackSpacing').value;
             record.crackWidth = document.getElementById('editCrackWidth').value;
-            record.dimensions = document.getElementById('editDimensions').value; // String update
+            record.dimensions = document.getElementById('editDimensions').value;
+
+            record.judgment = document.getElementById('editJudgment').value;
+            record.progress = document.getElementById('editProgress').value;
+            record.thirdParty = document.getElementById('editThirdParty').value;
+
             record.remarks = document.getElementById('editRemarks').value;
             record.synced = false; // Mark as unsynced so it can be re-uploaded
 
@@ -1316,23 +1403,23 @@
                 const cols = [
                     safe(d.bridgeName),
                     safe(d.sheetName),
-                    no,                     // 1. No
-                    safe(d.prevRecord),     // 2. 前回調書
-                    "",                     // 3. 同アングル
-                    safe(d.photoNo),        // 4. 写真番号
-                    "",                     // 5. 応急措置
-                    safe(d.member),         // 6. 部材
-                    "",                     // 7. 材料
-                    safe(d.elementNumber),  // 8. 要素番号
-                    safe(d.damageName),     // 9. 変状 (Name) ※User指定により修正
-                    "",                     // 10. 程度
-                    "",                     // 11. ひび間隔
-                    safe(d.crackWidth),     // 12. ひび幅
-                    safe(d.dimensions),     // 13. 数量
-                    "",                     // 14. 判定
-                    "",                     // 15. 進行
-                    "",                     // 16. 第三者
-                    safe(d.remarks)         // 17. 備考
+                    no,
+                    safe(d.prevRecord),
+                    safe(d.sameAngle),    // 3. 同アングル
+                    safe(d.photoNo),
+                    safe(d.emergency),    // 5. 応急措置
+                    safe(d.member),
+                    safe(d.material),     // 7. 材料
+                    safe(d.elementNumber),
+                    safe(d.damageName),
+                    safe(d.degree),       // 10. 程度
+                    safe(d.crackSpacing), // 11. ひび間隔
+                    safe(d.crackWidth),
+                    safe(d.dimensions),
+                    safe(d.judgment),     // 14. 判定
+                    safe(d.progress),     // 15. 進行
+                    safe(d.thirdParty),   // 16. 第三者
+                    safe(d.remarks)
                 ];
 
                 return cols.map(c => `"${c}"`).join(',');
@@ -1370,11 +1457,11 @@
                 const safe = (v) => (v === undefined || v === null) ? "" : v;
                 const cols = [
                     safe(d.bridgeName), safe(d.sheetName), i + 1,
-                    safe(d.prevRecord), "", safe(d.photoNo), "",
-                    safe(d.member), "", safe(d.elementNumber),
+                    safe(d.prevRecord), safe(d.sameAngle), safe(d.photoNo), safe(d.emergency),
+                    safe(d.member), safe(d.material), safe(d.elementNumber),
                     safe(d.damageName),
-                    "", "", safe(d.crackWidth), safe(d.dimensions),
-                    "", "", "", safe(d.remarks)
+                    safe(d.degree), safe(d.crackSpacing), safe(d.crackWidth), safe(d.dimensions),
+                    safe(d.judgment), safe(d.progress), safe(d.thirdParty), safe(d.remarks)
                 ];
                 return cols.map(c => `"${c}"`).join(',');
             }).join('\n');
