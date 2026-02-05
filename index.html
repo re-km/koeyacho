@@ -1344,6 +1344,66 @@
             a.click();
         }
     </script>
+    <!-- デバッグログ表示用 (Mobile) -->
+    <div id="debugLog"
+        style="display:none; position:fixed; bottom:0; left:0; width:100%; height:150px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:10px; overflow-y:scroll; padding:5px; z-index:9999; border-top:1px solid #444;">
+        <div
+            style="position:sticky; top:0; background:rgba(0,0,0,0.9); padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid #444; display:flex; justify-content:space-between;">
+            <span>📋 System Logs</span>
+            <button onclick="document.getElementById('debugLog').innerHTML=''" style="padding:0 5px;">Clear</button>
+            <button onclick="document.getElementById('debugLog').style.display='none'"
+                style="padding:0 5px;">Close</button>
+        </div>
+        <div id="debugContent"></div>
+    </div>
+
+    <!-- デバッグトグルボタン (Footer) -->
+    <div style="text-align:center; padding-bottom:10px;">
+        <button onclick="toggleDebugLog()"
+            style="background:none; border:none; color:#ccc; font-size:0.8em; text-decoration:underline;">
+            Show Debug Logs
+        </button>
+    </div>
+
+    <script>
+        // === Mobile Debug Logger ===
+        function toggleDebugLog() {
+            const el = document.getElementById('debugLog');
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function logToScreen(msg, type = 'log') {
+            const content = document.getElementById('debugContent');
+            if (!content) return;
+            const line = document.createElement('div');
+            line.style.color = type === 'error' ? '#ff6b6b' : '#0f0';
+            line.style.borderBottom = '1px solid #333';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            content.appendChild(line);
+            // Auto scroll
+            document.getElementById('debugLog').scrollTop = document.getElementById('debugLog').scrollHeight;
+        }
+
+        // Intercept Console and Errors
+        const originalLog = console.log;
+        const originalError = console.error;
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            logToScreen(args.join(' '));
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            logToScreen(args.join(' '), 'error');
+        };
+
+        window.onerror = function (msg, url, line) {
+            logToScreen(`ERROR: ${msg} at ${line}`, 'error');
+            // Show log automatically on error
+            document.getElementById('debugLog').style.display = 'block';
+        };
+    </script>
 </body>
 
 </html>
