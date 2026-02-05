@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.3.1 (Priority Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v2.3.2 (Regex Tuned) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -991,7 +991,8 @@
                 // ただし "L=0.5" のような明示的な長さ指定は除外する必要がある
 
                 // まずは単純な数値(単位なし or mm)を探す
-                const smallNumMatch = rawText.match(/(?:^|\s)(\d+(\.\d+)?)\s*(ミリ|mm)?(?=\s|$)/);
+                // 文末、空白、または数値以外の文字(長さ、Lなど)の前までを抽出
+                const smallNumMatch = rawText.match(/(?:^|\s)(\d+(\.\d+)?)\s*(ミリ|mm)?(?=\s|$|[^0-9\.])/);
                 if (smallNumMatch) {
                     const v = parseFloat(smallNumMatch[1]);
                     // 1.0未満、かつ単位がmでないならひび幅とみなす(リスクはあるが、音声入力の特性上有効)
