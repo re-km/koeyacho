@@ -1255,209 +1255,33 @@
         }
 
         // downloadCSV (Footer Button) -> Redirect to new logic (All Data)
-        function downloadCSV() {
-            // 既存のボタンが押されたら、全データ出力として処理
-            // UI上の値を変えず内部的に呼び出す
-            const originalData = appState.data;
-            // フィルタなしとみなして実行したいが、関数がDOM依存している。
-            // 簡易的に全データ出力用関数を分けるか、
-            // openDataManager -> All -> Export のフローを推奨するか。
-            // ここでは既存ボタンは「簡易バックアップ」として残し、新ロジックを使う形に修正。
 
+
+        function downloadCSV() {
             if (appState.data.length === 0) return;
 
-            // 既存ロジックを新フォーマットに合わせる (Bridge, Sheet, ... GAS cols)
-            // 共通化する
+            const bom = '\uFEFF';
+            const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
+            const body = appState.data.map((d, i) => {
+                const safe = (v) => (v === undefined || v === null) ? "" : v;
+                const cols = [
+                    safe(d.bridgeName), safe(d.sheetName), i + 1,
+                    safe(d.prevRecord), "", safe(d.photoNo), "",
+                    safe(d.member), "", safe(d.elementNumber),
+                    safe(d.damageName),
+                    "", "", safe(d.crackWidth), safe(d.dimensions),
+                    "", "", "", safe(d.remarks)
+                ];
+                return cols.map(c => `"${c}"`).join(',');
+            }).join('\n');
 
-
-            // Initialize Data Manager Button
-            document.addEventListener('DOMContentLoaded', () => {
-                const settingsBody = document.getElementById('settingsBody');
-                if (settingsBody) {
-                    const dmBtn = document.createElement('button');
-                    dmBtn.className = 'btn-outline';
-                    dmBtn.style.width = '100%';
-                    dmBtn.style.marginTop = '10px';
-                    dmBtn.innerHTML = '📊 データ管理 (オフライン)';
-                    dmBtn.onclick = openDataManager;
-                    settingsBody.appendChild(dmBtn);
-                }
-            });
-
-            // ==========================================
-            //  Data Manager Logic
-            // ==========================================
-            function openDataManager() {
-                document.getElementById('dataManagerModal').style.display = 'block';
-
-                const bridgeSet = new Set(appState.data.map(d => d.bridgeName).filter(n => n));
-                const diffSelect = document.getElementById('dmFilterBridge');
-                diffSelect.innerHTML = '<option value="">全ての橋</option>';
-                bridgeSet.forEach(b => {
-                    const opt = document.createElement('option');
-                    opt.value = b;
-                    opt.textContent = b;
-                    diffSelect.appendChild(opt);
-                });
-
-                updateSheetFilter();
-            }
-
-            function closeDataManager() {
-                document.getElementById('dataManagerModal').style.display = 'none';
-            }
-
-            function updateSheetFilter() {
-                const selectedBridge = document.getElementById('dmFilterBridge').value;
-                const sheetSelect = document.getElementById('dmFilterSheet');
-                sheetSelect.innerHTML = '<option value="">全てのシート</option>';
-
-                let targetData = appState.data;
-                if (selectedBridge) {
-                    targetData = targetData.filter(d => d.bridgeName === selectedBridge);
-                }
-
-                const sheetSet = new Set(targetData.map(d => d.sheetName).filter(n => n));
-                Array.from(sheetSet).sort().forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s;
-                    opt.textContent = s;
-                    sheetSelect.appendChild(opt);
-                });
-
-                renderDataTable();
-            }
-
-            function renderDataTable() {
-                const bridgeFilter = document.getElementById('dmFilterBridge').value;
-                const sheetFilter = document.getElementById('dmFilterSheet').value;
-                const tbody = document.getElementById('dmTableBody');
-                const emptyDiv = document.getElementById('dmEmpty');
-
-                tbody.innerHTML = '';
-
-                const filtered = appState.data.filter(d => {
-                    if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
-                    if (sheetFilter && d.sheetName !== sheetFilter) return false;
-                    return true;
-                });
-
-                if (filtered.length === 0) {
-                    emptyDiv.style.display = 'block';
-                    return;
-                }
-                emptyDiv.style.display = 'none';
-
-                [...filtered].reverse().forEach((d, idx) => {
-                    const tr = document.createElement('tr');
-                    tr.style.borderBottom = '1px solid #eee';
-
-                    const elemStr = d.elementNumber ? `<br><span style="font-size:0.8em; color:#666">#${d.elementNumber}</span>` : '';
-                    const widthStr = d.crackWidth ? `W:${d.crackWidth}` : '';
-                    const dimStr = (d.dimensions && d.dimensions.length > 0) ? `L:${d.dimensions}` : '';
-
-                    const valStr = [widthStr, dimStr].filter(Boolean).join('<br>');
-
-                    tr.innerHTML = `
-                                <td style="padding:8px;">${filtered.length - idx}</td>
-                                <td style="padding:8px;">${d.member}${elemStr}</td>
-                                <td style="padding:8px;">
-                                    ${d.damageName}
-                                    <br><span style="font-size:0.8em; color:#999">${d.remarks || ''}</span>
-                                </td>
-                                <td style="padding:8px;">${valStr}</td>
-                                <td style="padding:8px;">
-                                    <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:2px 6px; font-size:0.8em; color:#e74c3c;" onclick="deleteRecord('${d.timestamp}')">削除</button>
-                                </td>
-                                `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            function deleteRecord(timestamp) {
-                if (!confirm('本当にこの記録を削除しますか？')) return;
-                appState.data = appState.data.filter(d => d.timestamp !== timestamp);
-                saveDataLocally();
-                renderDataTable();
-                updateUI();
-            }
-
-            function exportFilteredCSV() {
-                const bridgeFilter = document.getElementById('dmFilterBridge').value;
-                const sheetFilter = document.getElementById('dmFilterSheet').value;
-
-                const filtered = appState.data.filter(d => {
-                    if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
-                    if (sheetFilter && d.sheetName !== sheetFilter) return false;
-                    return true;
-                });
-
-                if (filtered.length === 0) {
-                    alert('出力対象のデータがありません');
-                    return;
-                }
-
-                const bom = '\uFEFF';
-                const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
-
-                const body = filtered.map((d, i) => {
-                    const safe = (v) => (v === undefined || v === null) ? "" : v;
-                    const cols = [
-                        safe(d.bridgeName),
-                        safe(d.sheetName),
-                        i + 1,
-                        safe(d.prevRecord), "", safe(d.photoNo), "",
-                        safe(d.member), "", safe(d.elementNumber),
-                        safe(d.damageName),
-                        "", "", safe(d.crackWidth), safe(d.dimensions),
-                        "", "", "", safe(d.remarks)
-                    ];
-                    return cols.map(c => `"${c}"`).join(',');
-                }).join('\n');
-
-                const blob = new Blob([bom + header + body], { type: "text/csv" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-
-                let filename = 'tenken_export';
-                if (filtered.length > 0 && bridgeFilter) {
-                    filename += '_' + bridgeFilter;
-                    if (sheetFilter) filename += '_' + sheetFilter;
-                } else {
-                    filename += '_all';
-                }
-                filename += '_' + new Date().toISOString().slice(0, 10) + '.csv';
-
-                a.download = filename;
-                a.click();
-            }
-
-            function downloadCSV() {
-                if (appState.data.length === 0) return;
-
-                const bom = '\uFEFF';
-                const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
-                const body = appState.data.map((d, i) => {
-                    const safe = (v) => (v === undefined || v === null) ? "" : v;
-                    const cols = [
-                        safe(d.bridgeName), safe(d.sheetName), i + 1,
-                        safe(d.prevRecord), "", safe(d.photoNo), "",
-                        safe(d.member), "", safe(d.elementNumber),
-                        safe(d.damageName),
-                        "", "", safe(d.crackWidth), safe(d.dimensions),
-                        "", "", "", safe(d.remarks)
-                    ];
-                    return cols.map(c => `"${c}"`).join(',');
-                }).join('\n');
-
-                const blob = new Blob([bom + header + body], { type: "text/csv" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'tenken_full_backup_' + new Date().toISOString().slice(0, 10) + '.csv';
-                a.click();
-            }
+            const blob = new Blob([bom + header + body], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tenken_full_backup_' + new Date().toISOString().slice(0, 10) + '.csv';
+            a.click();
+        }
     </script>
 </body>
 
