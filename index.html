@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.8 (Length Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v1.9 (Scale Fix) | Ready</div>
 
     <script>
         // ==========================================
@@ -836,9 +836,20 @@
             // \s* を挟む
             const calcMatch = rawText.match(/(\d+(\.\d+)?)\s*\*\s*(\d+(\.\d+)?)/);
             if (calcMatch) {
-                // 空白を含んでいる可能性があるので、整形して保存
-                // calcMatch[0]="2.0 * 3.0" -> "2.0*3.0"
-                res.dimensions.push(calcMatch[0].replace(/\s+/g, ""));
+                // オペランドを取得してスケーリング
+                let v1 = parseFloat(calcMatch[1]);
+                let v2 = parseFloat(calcMatch[3]);
+
+                // 10以上ならmmとみなしてmに変換
+                if (v1 >= 10) v1 = v1 / 1000;
+                if (v2 >= 10) v2 = v2 / 1000;
+
+                // 丸め処理 (String化して結合)
+                // 有効数字等は適当 (例: 0.2*0.1)
+                const s1 = Math.round(v1 * 10000) / 10000;
+                const s2 = Math.round(v2 * 10000) / 10000;
+
+                res.dimensions.push(`${s1}*${s2}`);
 
                 rawText = rawText.replace(calcMatch[0], "");
             }
