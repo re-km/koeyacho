@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.1.4 (Offline Mgr) | Ready</div>
+    <div class="footer" id="systemStatus">v2.1.5 (Offline Mgr) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -539,7 +539,7 @@
                     <input type="text" id="editCrackWidth" class="input-text">
                 </div>
                 <div>
-                    <label style="font-size:0.8em; font-weight:bold;">数量(L)</label>
+                    <label style="font-size:0.8em; font-weight:bold;">数量/寸法</label>
                     <input type="text" id="editDimensions" class="input-text">
                 </div>
             </div>
@@ -1256,7 +1256,7 @@
                 // 表示用データの整形
                 const elemStr = d.elementNumber ? `<br><span style="font-size:0.8em; color:#666">#${d.elementNumber}</span>` : '';
                 const widthStr = d.crackWidth ? `W:${d.crackWidth}` : '';
-                const dimStr = (d.dimensions && d.dimensions.length > 0) ? `L:${d.dimensions}` : '';
+                const dimStr = (d.dimensions && d.dimensions.length > 0) ? `${d.dimensions}` : '';
                 const valStr = [widthStr, dimStr].filter(x => x).join('<br>');
 
                 tr.innerHTML = `
