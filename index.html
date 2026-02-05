@@ -410,7 +410,7 @@
         </div>
     </div>
 
-    <div class="footer" id="systemStatus">v1.9 (Scale Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v1.10 (CSV Update) | Ready</div>
 
     <script>
         // ==========================================
@@ -1017,10 +1017,12 @@
         function downloadCSV() {
             if (appState.data.length === 0) return;
             const bom = '\uFEFF';
-            // 17項目に近い形で出すか、システム管理用として出すか。ここではシステム管理用+α
-            const header = "日時,橋名,シート名,部材,変状名,写真番号,前回調書,数量,備考,同期状態\n";
+            // 全項目を出力
+            const header = "日時,橋名,橋ID,シート名,部材,要素番号,変状名,変状ID,ひび幅,数量,写真番号,前回調書,備考,同期状態\n";
             const body = appState.data.map(d => {
-                return `"${d.timestamp}","${d.bridgeName}","${d.sheetName}","${d.member}","${d.damageName}","${d.photoNo}","${d.prevRecord}","${d.dimensions}","${d.remarks}","${d.synced ? '済' : '未'}"`;
+                // null/undefined対策
+                const safe = (v) => (v === undefined || v === null) ? "" : v;
+                return `"${safe(d.timestamp)}","${safe(d.bridgeName)}","${safe(d.bridgeId)}","${safe(d.sheetName)}","${safe(d.member)}","${safe(d.elementNumber)}","${safe(d.damageName)}","${safe(d.damageId)}","${safe(d.crackWidth)}","${safe(d.dimensions)}","${safe(d.photoNo)}","${safe(d.prevRecord)}","${safe(d.remarks)}","${d.synced ? '済' : '未'}"`;
             }).join('\n');
 
             const blob = new Blob([bom + header + body], { type: "text/csv" });
