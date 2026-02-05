@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.1.5 (Offline Mgr) | Ready</div>
+    <div class="footer" id="systemStatus">v2.2 (JS Logic Enhanced) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -973,30 +973,45 @@
 
             // 6. ひび幅 (crackWidth) の抽出
             // "幅 0.2ミリ" -> "幅" + 空白? + 数値 + 空白? + 単位?
-            const widthMatch = rawText.match(/幅\s*(\d+(\.\d+)?)\s*(ミリ|mm|)/);
-            if (widthMatch) {
-                let val = widthMatch[1];
-                let unit = widthMatch[3] || "";
+            // または、変状が「ひび割れ」系の場合の特例処理
 
+            // 明示的な「幅」指定がある場合
+            const widthMatch = rawText.match(/(幅|W)\s*(\d+(\.\d+)?)\s*(ミリ|mm|)/i);
+            if (widthMatch) {
+                let val = widthMatch[2];
+                let unit = widthMatch[4] || ""; // regex group correction: group 2 is value, group 4 is unit
                 if (unit === "ミリ") unit = "mm";
                 res.crackWidth = val + unit;
+                rawText = rawText.replace(widthMatch[0], ""); // 抽出済み部分を削除
+            }
+            // 「ひび割れ」「床版ひび割れ」の場合で、かつ明示的な幅指定がなく、小さな数値がある場合の推論
+            else if ((res.damageName === 'ひび割れ' || res.damageName === '床版ひび割れ') && !res.crackWidth) {
+                // 文脈依存: "0.2" のような単独の小さな数値(例えば1.0未満)はひび幅とみなす
+                // ただし "L=0.5" のような明示的な長さ指定は除外する必要がある
 
-                // 抽出済みの部分は後続の寸法処理で拾わないように置換して消しておく
-                // マッチした全体を削除
-                // rawTextはスペース区切りになっているので、置換時は注意が必要だが、
-                // widthMatch[0] は実際にマッチした文字列なのでそのまま replace で消せるはず
-                rawText = rawText.replace(widthMatch[0], "");
+                // まずは単純な数値(単位なし or mm)を探す
+                const smallNumMatch = rawText.match(/(?:^|\s)(\d+(\.\d+)?)\s*(ミリ|mm)?(?=\s|$)/);
+                if (smallNumMatch) {
+                    const v = parseFloat(smallNumMatch[1]);
+                    // 1.0未満、かつ単位がmでないならひび幅とみなす(リスクはあるが、音声入力の特性上有効)
+                    if (v < 1.0 || smallNumMatch[3]) {
+                        let unit = smallNumMatch[3] || "";
+                        if (unit === "ミリ") unit = "mm";
+                        res.crackWidth = smallNumMatch[1] + unit;
+                        rawText = rawText.replace(smallNumMatch[0], "");
+                    }
+                }
             }
 
             // 7. 数量 (dimensions) の抽出
 
             // まず計算式パターン "2.0 * 3.0" (空白許容)
             // \s* を挟む
-            const calcMatch = rawText.match(/(\d+(\.\d+)?)\s*\*\s*(\d+(\.\d+)?)/);
+            const calcMatch = rawText.match(/(\d+(\.\d+)?)\s*(\*|×|かける)\s*(\d+(\.\d+)?)/);
             if (calcMatch) {
                 // オペランドを取得してスケーリング
                 let v1 = parseFloat(calcMatch[1]);
-                let v2 = parseFloat(calcMatch[3]);
+                let v2 = parseFloat(calcMatch[4]);
 
                 // 10以上ならmmとみなしてmに変換
                 if (v1 >= 10) v1 = v1 / 1000;
