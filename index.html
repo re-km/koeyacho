@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.3.3 (Damage ID Export) | Ready</div>
+    <div class="footer" id="systemStatus">v2.3.4 (Edit ID Fix) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -520,8 +520,8 @@
             <!-- Row 3: Damage Info -->
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <div>
-                    <label style="font-size:0.8em; font-weight:bold;">変状名</label>
-                    <input type="text" id="editDamageName" class="input-text">
+                    <label style="font-size:0.8em; font-weight:bold;">変状 (ID)</label>
+                    <input type="text" id="editDamageName" class="input-text" placeholder="例: 6">
                 </div>
                 <div>
                     <label style="font-size:0.8em; font-weight:bold;">程度</label>
@@ -1350,7 +1350,9 @@
             document.getElementById('editMaterial').value = record.material || '';
             document.getElementById('editElementNumber').value = record.elementNumber || '';
 
-            document.getElementById('editDamageName').value = record.damageName || '';
+            // Use Damage ID for editing
+            document.getElementById('editDamageName').value = record.damageId || '';
+
             document.getElementById('editDegree').value = record.degree || '';
 
             document.getElementById('editCrackSpacing').value = record.crackSpacing || '';
@@ -1376,6 +1378,8 @@
             if (!record) return;
 
             // Update record
+            const damageId = document.getElementById('editDamageName').value;
+            record.damageId = damageId;
             record.prevRecord = document.getElementById('editPrevRecord').value;
             record.photoNo = document.getElementById('editPhotoNo').value;
             record.sameAngle = document.getElementById('editSameAngle').value;
@@ -1385,7 +1389,7 @@
             record.material = document.getElementById('editMaterial').value;
             record.elementNumber = document.getElementById('editElementNumber').value;
 
-            record.damageName = document.getElementById('editDamageName').value;
+            record.damageName = damageTypes[damageId] || (damageId + ": Unknown");
             record.degree = document.getElementById('editDegree').value;
 
             record.crackSpacing = document.getElementById('editCrackSpacing').value;
