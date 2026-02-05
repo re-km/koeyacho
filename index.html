@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.1 (Offline Mgr) | Ready</div>
+    <div class="footer" id="systemStatus">v2.1.1 (Offline Mgr) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -1180,8 +1180,18 @@
 
         // --- Edit Modal Functions ---
         function openEditModal(id) {
+            console.log("Opening edit modal for id:", id);
             const record = appState.data.find(d => d.id === id);
-            if (!record) return;
+            if (!record) {
+                console.error("Record not found:", id);
+                return;
+            }
+
+            const modal = document.getElementById('editModal');
+            if (!modal) {
+                console.error("Edit modal element not found!");
+                return;
+            }
 
             document.getElementById('editId').value = id;
             document.getElementById('editMember').value = record.member || '';
@@ -1191,7 +1201,6 @@
             document.getElementById('editDimensions').value = record.dimensions || ''; // String update
             document.getElementById('editRemarks').value = record.remarks || '';
 
-            const modal = document.getElementById('editModal');
             modal.style.display = 'flex';
         }
 
