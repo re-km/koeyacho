@@ -478,6 +478,12 @@
             <h3>✏️ 記録の編集</h3>
             <input type="hidden" id="editId">
 
+            <label style="font-size:0.8em; font-weight:bold;">前回調書</label>
+            <input type="text" id="editPrevRecord" class="input-text">
+
+            <label style="font-size:0.8em; font-weight:bold;">写真番号</label>
+            <input type="text" id="editPhotoNo" class="input-text">
+
             <label style="font-size:0.8em; font-weight:bold;">部材</label>
             <input type="text" id="editMember" class="input-text">
 
@@ -1227,6 +1233,8 @@
             }
 
             document.getElementById('editId').value = id;
+            document.getElementById('editPrevRecord').value = record.prevRecord || '';
+            document.getElementById('editPhotoNo').value = record.photoNo || '';
             document.getElementById('editMember').value = record.member || '';
             document.getElementById('editElementNumber').value = record.elementNumber || '';
             document.getElementById('editDamageName').value = record.damageName || '';
@@ -1247,6 +1255,8 @@
             if (!record) return;
 
             // Update record
+            record.prevRecord = document.getElementById('editPrevRecord').value;
+            record.photoNo = document.getElementById('editPhotoNo').value;
             record.member = document.getElementById('editMember').value;
             record.elementNumber = document.getElementById('editElementNumber').value;
             record.damageName = document.getElementById('editDamageName').value;
