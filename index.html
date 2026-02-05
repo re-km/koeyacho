@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.2 (JS Logic Enhanced) | Ready</div>
+    <div class="footer" id="systemStatus">v2.3 (Chronological) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -1263,8 +1263,12 @@
             }
             emptyDiv.style.display = 'none';
 
-            // テーブル描画 (降順: 新しい順)
-            [...filtered].reverse().forEach((d, idx) => {
+            // テーブル描画 (昇順: 古い順=No1, No2...)
+            // ユーザー要望: 入力順(古い順)に1から採番
+            // なので、リストの上(No1)が最も古く、下(NoN)が最新になる
+            filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            filtered.forEach((d, idx) => {
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid #eee';
 
@@ -1274,8 +1278,11 @@
                 const dimStr = (d.dimensions && d.dimensions.length > 0) ? `${d.dimensions}` : '';
                 const valStr = [widthStr, dimStr].filter(x => x).join('<br>');
 
+                // No.は単純な連番 (idx + 1)
+                const no = idx + 1;
+
                 tr.innerHTML = `
-                        <td style="padding:8px;">${filtered.length - idx}</td>
+                        <td style="padding:8px;">${no}</td>
                         <td style="padding:8px;">${d.member}${elemStr}</td>
                         <td style="padding:8px;">
                             ${d.damageName}
@@ -1308,13 +1315,22 @@
                 return;
             }
 
-            // Calculate No. (1-based index based on creation order)
-            // Note: appState.data is in creation order (oldest first) unless altered.
-            // renderDataTable uses reverse(), so index 0 in data is No.1?
-            // Actually, renderDataTable logic: No = filtered.length - idx.
-            // If we want consistent absolute ID: index + 1
-            const index = appState.data.findIndex(d => d.id === id);
-            const no = index + 1;
+            // -----------------------------------------------------------
+            // Calculate No. based on Chronological Order (Oldest = 1)
+            // -----------------------------------------------------------
+            // 1. Create a chronological list of ALL data (or filtered? usually global or sheet-local)
+            // User likely expects "No." to match the List View "No." relative to the current filter?
+            // "Automatic numbering" usually implies the Sheet's sequence.
+            // Let's deduce it from the same logic as renderDataTable/export.
+            // But openEditModal takes 'id', doesn't know current filter state easily without DOM check.
+            // Simplest consistent approach: Global Chronological Index for that Sheet.
+
+            // Get records for this sheet (to be consistent with "Sheet No.")
+            const currentSheetRecords = appState.data.filter(d => d.sheetName === record.sheetName);
+            // Sort Oldest -> Newest
+            currentSheetRecords.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)));
+            const indexOnSheet = currentSheetRecords.findIndex(d => d.id === id);
+            const no = indexOnSheet + 1;
 
             const titleEl = document.getElementById('editModalTitle');
             if (titleEl) {
@@ -1406,11 +1422,13 @@
             const bridgeFilter = document.getElementById('dmFilterBridge').value;
             const sheetFilter = document.getElementById('dmFilterSheet').value;
 
-            const filtered = appState.data.filter(d => {
+            // フィルタ&ソート (Oldest -> Newest)
+            let filtered = appState.data.filter(d => {
                 if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
                 if (sheetFilter && d.sheetName !== sheetFilter) return false;
                 return true;
             });
+            filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
             if (filtered.length === 0) {
                 alert('出力対象のデータがありません');
@@ -1424,8 +1442,9 @@
 
             const body = filtered.map((d, i) => {
                 const safe = (v) => (v === undefined || v === null) ? "" : v;
-                // Noは単なる連番(1基点)
+                // Noは単なる連番(1基点、古い順)
                 const no = i + 1;
+
 
                 // GAS互換配列作成
                 const cols = [
