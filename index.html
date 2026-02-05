@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.3.2 (Regex Tuned) | Ready</div>
+    <div class="footer" id="systemStatus">v2.3.3 (Damage ID Export) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -1287,7 +1287,8 @@
                         <td style="padding:8px;">${no}</td>
                         <td style="padding:8px;">${d.member}${elemStr}</td>
                         <td style="padding:8px;">
-                            ${d.damageName}
+                            <span style="font-weight:bold;">${d.damageId || '-'}</span>
+                            <br><span style="font-size:0.8em; color:#666">${d.damageName || ''}</span>
                             <br><span style="font-size:0.8em; color:#999">${d.remarks || ''}</span>
                         </td>
                         <td style="padding:8px;">${valStr}</td>
@@ -1460,8 +1461,8 @@
                     safe(d.member),
                     safe(d.material),     // 7. 材料
                     safe(d.elementNumber),
-                    safe(d.damageName),
-                    safe(d.degree),       // 10. 程度
+                    safe(d.damageId),     // 10. 変状 (IDを出力)
+                    safe(d.degree),       // 10. 程度 (Web入力あり)
                     safe(d.crackSpacing), // 11. ひび間隔
                     safe(d.crackWidth),
                     safe(d.dimensions),
