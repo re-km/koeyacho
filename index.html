@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.4.0 (Member Alias + Crack Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v2.5.0 (Phonetic Member Match) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -603,40 +603,144 @@
             { name: "その他", aliases: ["そのた"], id: 17 }
             // (全て列挙すると長いので主要なものを記載。必要に応じて追加)
         ];
-        // 部材キーワード（エイリアス付き: 音声認識の漢字変換ミス・ひらがな読み対応）
+        // 部材キーワード（同音漢字パターンマッチ方式）
+        // 音声認識は毎回異なる漢字に変換するため、個別エイリアスでは対応しきれない。
+        // 各漢字の「同音異字」を正規表現でグループ化し、どの組み合わせでもマッチさせる。
         const memberKeywords = [
-            { name: "主桁", aliases: ["しゅげた", "茂田", "シュゲタ", "しゅげた"] },
-            { name: "横桁", aliases: ["よこげた", "ヨコゲタ"] },
-            { name: "縦桁", aliases: ["たてげた", "タテゲタ"] },
-            { name: "床版", aliases: ["しょうばん", "小版", "ショウバン", "しょうはん", "床盤", "床板"] },
-            { name: "対傾構", aliases: ["たいけいこう", "タイケイコウ", "体傾向", "大傾向", "対傾向"] },
-            { name: "横構", aliases: ["よここう", "ヨココウ"] },
-            { name: "ゲルバー部", aliases: ["げるばー", "ゲルバ"] },
-            { name: "高欄", aliases: ["こうらん", "コウラン", "甲蘭", "高蘭"] },
-            { name: "防護柵", aliases: ["ぼうごさく", "ボウゴサク", "防護策"] },
-            { name: "地覆", aliases: ["じふく", "ジフク", "地伏", "地福"] },
-            { name: "支承本体", aliases: ["ししょうほんたい", "シショウホンタイ", "支承", "ししょう"] },
-            { name: "排水施設", aliases: ["はいすいしせつ", "排水"] },
-            { name: "排水管", aliases: ["はいすいかん"] },
-            { name: "排水ます", aliases: ["はいすいます", "排水マス", "排水枡"] },
-            { name: "アーチリブ", aliases: ["あーちりぶ"] },
-            { name: "外ケーブル", aliases: ["そとけーぶる", "がいけーぶる"] },
-            { name: "添架物", aliases: ["てんかぶつ", "テンカブツ", "展下物", "天下物"] },
-            { name: "PC定着部", aliases: ["ぴーしーていちゃくぶ", "PC定着"] },
-            { name: "伸縮装置", aliases: ["しんしゅくそうち", "伸縮"] },
-            { name: "点検施設", aliases: ["てんけんしせつ"] },
-            { name: "頂版", aliases: ["ちょうばん", "頂板"] },
-            { name: "底版", aliases: ["ていばん", "底板", "底盤"] },
-            { name: "壁部", aliases: ["へきぶ", "壁"] },
-            { name: "柱部", aliases: ["ちゅうぶ", "柱"] },
-            { name: "隅角部", aliases: ["すみかくぶ", "ぐうかくぶ", "隅各部"] },
-            { name: "沓座モルタル", aliases: ["くつざもるたる", "沓座"] },
-            { name: "台座コンクリート", aliases: ["だいざこんくりーと", "台座"] },
-            { name: "落橋防止システム", aliases: ["らっきょうぼうし", "落橋防止"] },
-            { name: "舗装", aliases: ["ほそう", "ホソウ"] },
-            { name: "遮音施設", aliases: ["しゃおんしせつ", "遮音壁"] },
-            { name: "中央分離帯", aliases: ["ちゅうおうぶんりたい"] },
-            { name: "縁石", aliases: ["えんせき", "ふちいし"] }
+            // --- 上部構造 ---
+            {
+                name: "主桁", pattern: /[主首重朱守手殊珠須修収衆酒取種趣][桁田形方]/,
+                aliases: ["しゅげた", "シュゲタ"]
+            },
+            {
+                name: "横桁", pattern: /[横よこ][桁田形方]/,
+                aliases: ["よこげた", "ヨコゲタ"]
+            },
+            {
+                name: "縦桁", pattern: /[縦たて立建][桁田形方]/,
+                aliases: ["たてげた", "タテゲタ"]
+            },
+            {
+                name: "床版", pattern: /[床小商少升召初所書署諸処][版判番盤板半班般犯帆搬畔斑販藩]/,
+                aliases: ["しょうばん", "ショウバン", "しょうはん", "ひょうばん"]
+            },
+            {
+                name: "対傾構", pattern: /[対隊大体代台第帯退太鯛堆怠待泰滞戴替][傾景径慶経恵形型系][構講溝向港好公功工口高効稿巧光孝鬩紘]/,
+                aliases: ["たいけいこう", "タイケイコウ"]
+            },
+            {
+                name: "横構", pattern: /[横よこ][構講溝向港好公功工口]/,
+                aliases: ["よここう", "ヨココウ"]
+            },
+            {
+                name: "ゲルバー部", pattern: /ゲルバ/,
+                aliases: ["げるばー", "げるば"]
+            },
+            // --- 橋面 ---
+            {
+                name: "高欄", pattern: /[高甲香交公功興好幸光孝洪鴻広厚更考講鋼荒行合校港候口後黄効紅稿号恒侯郊皇硬項綱耕航鉱慌肯控酵溝絞梗喉][欄蘭覧乱爛嵐濫卵藍]/,
+                aliases: ["こうらん", "コウラン"]
+            },
+            {
+                name: "防護柵", pattern: /[防棒暴房傍坊望膨妨冒紡帽忙乏亡剖貿][護語呉誤碁娯午後伍][柵索策作削昨咲]/,
+                aliases: ["ぼうごさく", "ボウゴサク"]
+            },
+            {
+                name: "地覆", pattern: /[地じ治持][覆伏福復腹服副複幅]/,
+                aliases: ["じふく", "ジフク"]
+            },
+            {
+                name: "伸縮装置", pattern: /[伸紳申信芯辛進新森深真神親寝慎振侵浸][縮宿粛淑塾熟]/,
+                aliases: ["しんしゅくそうち", "伸縮"]
+            },
+            {
+                name: "舗装", pattern: /[舗補歩保][装荘送層蔵倉双掃走草創葬槽遭相壮総想像増憎操燥藻騒早曾措疎祖組訴阻粗]/,
+                aliases: ["ほそう", "ホソウ"]
+            },
+            {
+                name: "中央分離帯", pattern: /中央分離/,
+                aliases: ["ちゅうおうぶんりたい"]
+            },
+            {
+                name: "縁石", pattern: /[縁円園遠延演塩鉛宴沿炎艶援煙][石席関積赤昔跡隻]/,
+                aliases: ["えんせき", "ふちいし"]
+            },
+            // --- 支承部 ---
+            {
+                name: "支承本体", pattern: /[支し姿思糸始指子紫旨至][承証称象昇消商照焼章勝紹招詳彰晶障衝焦松省匠将]/,
+                aliases: ["ししょうほんたい", "支承", "ししょう"]
+            },
+            {
+                name: "沓座モルタル", pattern: /[沓くつ靴屈窟掘][座ざ挫]/,
+                aliases: ["くつざもるたる", "くつざ", "沓座"]
+            },
+            {
+                name: "台座コンクリート", pattern: /台座/,
+                aliases: ["だいざこんくりーと", "台座"]
+            },
+            {
+                name: "落橋防止システム", pattern: /落橋防止|らっきょう防止/,
+                aliases: ["らっきょうぼうし", "落橋防止"]
+            },
+            // --- 下部工 ---
+            {
+                name: "柱部", pattern: /[柱注駐中宙鋳][部ぶ武歩付負附布夫婦富扶符普訃浮腐敷膚賦赴不]/,
+                aliases: ["ちゅうぶ"]
+            },
+            {
+                name: "壁部", pattern: /[壁へき碧][部ぶ]/,
+                aliases: ["へきぶ"]
+            },
+            {
+                name: "隅角部", pattern: /[隅すみ澄済][角各格客確核覚革隔殻較閣郭脚却拡獲画骸][部ぶ]/,
+                aliases: ["すみかくぶ", "ぐうかくぶ"]
+            },
+            // --- ボックスカルバート ---
+            {
+                name: "頂版", pattern: /[頂兆町超長腸張帳朝潮庁跳彫釣鳥徴懲眺聴][版判番盤板半班般犯帆搬畔斑販藩]/,
+                aliases: ["ちょうばん", "ちょうはん"]
+            },
+            {
+                name: "底版", pattern: /[底低手抵定提帝締庭程呈逓停訂貞偵廷堤艇泥的適邸笛][版判番盤板半班般犯帆搬畔斑販藩]/,
+                aliases: ["ていばん", "ていはん"]
+            },
+            // --- その他 ---
+            {
+                name: "排水管", pattern: /排水[管官缶棺冠勧]/,
+                aliases: ["はいすいかん"]
+            },
+            {
+                name: "排水ます", pattern: /排水[ます枡桝升]/,
+                aliases: ["はいすいます"]
+            },
+            {
+                name: "排水施設", pattern: /排水施/,
+                aliases: ["はいすいしせつ", "排水"]
+            },
+            {
+                name: "アーチリブ", pattern: /アーチリブ/,
+                aliases: ["あーちりぶ"]
+            },
+            {
+                name: "外ケーブル", pattern: /外ケーブル|外けーぶる/,
+                aliases: ["そとけーぶる", "がいけーぶる"]
+            },
+            {
+                name: "添架物", pattern: /[添天展店転点典伝殿田電][架加下夏化火花家科歌課菓過暇靴嫁華禍稼蚊][物もの者]/,
+                aliases: ["てんかぶつ", "テンカブツ"]
+            },
+            {
+                name: "PC定着部", pattern: /PC定着|ピーシー定着/,
+                aliases: ["PC定着"]
+            },
+            {
+                name: "点検施設", pattern: /点検施/,
+                aliases: ["てんけんしせつ"]
+            },
+            {
+                name: "遮音施設", pattern: /遮音/,
+                aliases: ["しゃおんしせつ", "遮音壁"]
+            }
         ];
         const unitPatterns = [
             { pattern: /(\d+\.?\d*)\s*(ミリ|mm)/gi, unit: "mm" },
@@ -954,30 +1058,41 @@
                 remarks: ""
             };
 
-            // 1. 部材の抽出（エイリアス対応）
+            // 1. 部材の抽出（同音漢字パターン + エイリアス対応）
             for (const mk of memberKeywords) {
-                // 正式名称で検索
-                const regex = new RegExp(mk.name + "\\s*([A-Za-z0-9\\-]+)?");
-                const match = rawText.match(regex);
-                if (match) {
+                // (a) 正式名称で完全一致検索
+                const nameRegex = new RegExp(mk.name + "\\s*([A-Za-z0-9\\-]+)?");
+                const nameMatch = rawText.match(nameRegex);
+                if (nameMatch) {
                     res.member = mk.name;
-                    if (match[1]) {
-                        res.elementNumber = match[1];
-                    }
+                    if (nameMatch[1]) res.elementNumber = nameMatch[1];
                     break;
                 }
-                // エイリアスで検索
+
+                // (b) 同音漢字パターンで検索（最も広くヒットする）
+                if (mk.pattern) {
+                    const patternMatch = rawText.match(mk.pattern);
+                    if (patternMatch) {
+                        res.member = mk.name; // 正式名称に変換
+                        // マッチ箇所の後ろに要素番号があるか確認
+                        const afterIdx = patternMatch.index + patternMatch[0].length;
+                        const afterText = rawText.substring(afterIdx);
+                        const elemMatch = afterText.match(/^\s*([A-Za-z0-9\-]+)/);
+                        if (elemMatch) res.elementNumber = elemMatch[1];
+                        break;
+                    }
+                }
+
+                // (c) ひらがな/カタカナエイリアスで検索
                 let aliasFound = false;
                 for (const alias of mk.aliases) {
                     if (rawText.includes(alias)) {
-                        res.member = mk.name; // 正式名称に変換
+                        res.member = mk.name;
                         aliasFound = true;
-                        // エイリアスの後ろに要素番号があるか確認
-                        const aliasRegex = new RegExp(alias + "\\s*([A-Za-z0-9\\-]+)?");
-                        const aliasMatch = rawText.match(aliasRegex);
-                        if (aliasMatch && aliasMatch[1]) {
-                            res.elementNumber = aliasMatch[1];
-                        }
+                        const aliasIdx = rawText.indexOf(alias);
+                        const afterText = rawText.substring(aliasIdx + alias.length);
+                        const elemMatch = afterText.match(/^\s*([A-Za-z0-9\-]+)/);
+                        if (elemMatch) res.elementNumber = elemMatch[1];
                         break;
                     }
                 }
