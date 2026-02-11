@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.3.5 (Crack W/L Parse Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v2.4.0 (Member Alias + Crack Fix) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -603,8 +603,41 @@
             { name: "その他", aliases: ["そのた"], id: 17 }
             // (全て列挙すると長いので主要なものを記載。必要に応じて追加)
         ];
-        // 必要十分な簡易リストにしておく
-        const memberKeywords = ["主桁", "横桁", "縦桁", "床版", "対傾構", "横構", "ゲルバー部", "高欄", "防護柵", "地覆", "支承本体", "排水施設", "アーチリブ", "外ケーブル", "添架物"];
+        // 部材キーワード（エイリアス付き: 音声認識の漢字変換ミス・ひらがな読み対応）
+        const memberKeywords = [
+            { name: "主桁", aliases: ["しゅげた", "茂田", "シュゲタ", "しゅげた"] },
+            { name: "横桁", aliases: ["よこげた", "ヨコゲタ"] },
+            { name: "縦桁", aliases: ["たてげた", "タテゲタ"] },
+            { name: "床版", aliases: ["しょうばん", "小版", "ショウバン", "しょうはん", "床盤", "床板"] },
+            { name: "対傾構", aliases: ["たいけいこう", "タイケイコウ", "体傾向", "大傾向", "対傾向"] },
+            { name: "横構", aliases: ["よここう", "ヨココウ"] },
+            { name: "ゲルバー部", aliases: ["げるばー", "ゲルバ"] },
+            { name: "高欄", aliases: ["こうらん", "コウラン", "甲蘭", "高蘭"] },
+            { name: "防護柵", aliases: ["ぼうごさく", "ボウゴサク", "防護策"] },
+            { name: "地覆", aliases: ["じふく", "ジフク", "地伏", "地福"] },
+            { name: "支承本体", aliases: ["ししょうほんたい", "シショウホンタイ", "支承", "ししょう"] },
+            { name: "排水施設", aliases: ["はいすいしせつ", "排水"] },
+            { name: "排水管", aliases: ["はいすいかん"] },
+            { name: "排水ます", aliases: ["はいすいます", "排水マス", "排水枡"] },
+            { name: "アーチリブ", aliases: ["あーちりぶ"] },
+            { name: "外ケーブル", aliases: ["そとけーぶる", "がいけーぶる"] },
+            { name: "添架物", aliases: ["てんかぶつ", "テンカブツ", "展下物", "天下物"] },
+            { name: "PC定着部", aliases: ["ぴーしーていちゃくぶ", "PC定着"] },
+            { name: "伸縮装置", aliases: ["しんしゅくそうち", "伸縮"] },
+            { name: "点検施設", aliases: ["てんけんしせつ"] },
+            { name: "頂版", aliases: ["ちょうばん", "頂板"] },
+            { name: "底版", aliases: ["ていばん", "底板", "底盤"] },
+            { name: "壁部", aliases: ["へきぶ", "壁"] },
+            { name: "柱部", aliases: ["ちゅうぶ", "柱"] },
+            { name: "隅角部", aliases: ["すみかくぶ", "ぐうかくぶ", "隅各部"] },
+            { name: "沓座モルタル", aliases: ["くつざもるたる", "沓座"] },
+            { name: "台座コンクリート", aliases: ["だいざこんくりーと", "台座"] },
+            { name: "落橋防止システム", aliases: ["らっきょうぼうし", "落橋防止"] },
+            { name: "舗装", aliases: ["ほそう", "ホソウ"] },
+            { name: "遮音施設", aliases: ["しゃおんしせつ", "遮音壁"] },
+            { name: "中央分離帯", aliases: ["ちゅうおうぶんりたい"] },
+            { name: "縁石", aliases: ["えんせき", "ふちいし"] }
+        ];
         const unitPatterns = [
             { pattern: /(\d+\.?\d*)\s*(ミリ|mm)/gi, unit: "mm" },
             { pattern: /(\d+\.?\d*)\s*(センチ|cm)/gi, unit: "cm" },
@@ -921,18 +954,34 @@
                 remarks: ""
             };
 
-            // 1. 部材の抽出
-            for (const m of memberKeywords) {
-                // 正規表現で、部材名＋(任意の空白)＋(英数字ハイフン) を探す
-                const regex = new RegExp(m + "\\s*([A-Za-z0-9\\-]+)?");
+            // 1. 部材の抽出（エイリアス対応）
+            for (const mk of memberKeywords) {
+                // 正式名称で検索
+                const regex = new RegExp(mk.name + "\\s*([A-Za-z0-9\\-]+)?");
                 const match = rawText.match(regex);
                 if (match) {
-                    res.member = m; // 部材名はキーワードそのもの
+                    res.member = mk.name;
                     if (match[1]) {
-                        res.elementNumber = match[1]; // 後ろについた番号を要素番号とする
+                        res.elementNumber = match[1];
                     }
                     break;
                 }
+                // エイリアスで検索
+                let aliasFound = false;
+                for (const alias of mk.aliases) {
+                    if (rawText.includes(alias)) {
+                        res.member = mk.name; // 正式名称に変換
+                        aliasFound = true;
+                        // エイリアスの後ろに要素番号があるか確認
+                        const aliasRegex = new RegExp(alias + "\\s*([A-Za-z0-9\\-]+)?");
+                        const aliasMatch = rawText.match(aliasRegex);
+                        if (aliasMatch && aliasMatch[1]) {
+                            res.elementNumber = aliasMatch[1];
+                        }
+                        break;
+                    }
+                }
+                if (aliasFound) break;
             }
 
             // 2. 変状の抽出
