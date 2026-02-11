@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.3.4 (Edit ID Fix) | Ready</div>
+    <div class="footer" id="systemStatus">v2.3.5 (Crack W/L Parse Fix) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -977,25 +977,53 @@
             // または、変状が「ひび割れ」系の場合の特例処理
 
             // 明示的な「幅」指定がある場合
-            const widthMatch = rawText.match(/(幅|W)\s*(\d+(\.\d+)?)\s*(ミリ|mm|)/i);
+            // 音声認識の読み上げバリエーション: 幅/はば/ハバ/W/ダブリュー
+            const widthMatch = rawText.match(/(幅|はば|ハバ|W|ダブリュー)\s*(\d+(\.\d+)?)\s*(ミリ|mm|)/i);
             if (widthMatch) {
                 let val = widthMatch[2];
-                let unit = widthMatch[4] || ""; // regex group correction: group 2 is value, group 4 is unit
+                let unit = widthMatch[4] || "";
                 if (unit === "ミリ") unit = "mm";
                 res.crackWidth = val + unit;
                 rawText = rawText.replace(widthMatch[0], ""); // 抽出済み部分を削除
             }
-            // 「ひび割れ」「床版ひび割れ」の場合で、かつ明示的な幅指定がなく、小さな数値がある場合の推論
-            else if ((res.damageName === 'ひび割れ' || res.damageName === '床版ひび割れ') && !res.crackWidth) {
-                // 文脈依存: "0.2" のような単独の小さな数値(例えば1.0未満)はひび幅とみなす
-                // ただし "L=0.5" のような明示的な長さ指定は除外する必要がある
 
-                // まずは単純な数値(単位なし or mm)を探す
-                // 文末、空白、または数値以外の文字(長さ、Lなど)の前までを抽出
+            // 6.5. 長さ (dimensions) の明示的抽出 — 幅の直後に処理
+            // 「長さ」「L」のプレフィックス付きの値を先に抽出して、後続処理での誤爆を防ぐ
+            // 音声認識の読み上げバリエーション: L/エル/える/Ｌ/長さ/ながさ
+            const lengthMatch = rawText.match(/(長さ|ながさ|エル|える|Ｌ|L)\s*(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)?/i);
+            if (lengthMatch) {
+                let val = parseFloat(lengthMatch[2]);
+                let unit = lengthMatch[4] || "";
+
+                // 明示的な単位がある場合はそれに従う
+                if (unit === "ミリ" || unit === "mm") {
+                    val = val / 1000;
+                } else if (unit === "センチ" || unit === "cm") {
+                    val = val / 100;
+                } else if (unit === "メートル" || unit === "m") {
+                    // そのまま
+                } else {
+                    // 単位なしの場合: 換算ロジック (ヒューリスティック)
+                    // 10以上ならmmとみなしてmに変換する (現場慣習)
+                    // 0.5 -> 0.5m, 500 -> 0.5m, 5 -> 5m
+                    if (val >= 10) {
+                        val = val / 1000;
+                    }
+                }
+
+                res.dimensions.push(Math.round(val * 10000) / 10000);
+                rawText = rawText.replace(lengthMatch[0], ""); // 抽出済み部分を削除
+            }
+
+            // 「ひび割れ」系で明示的な幅指定がなく、小さな数値がある場合の推論
+            if ((res.damageName === 'ひびわれ' || res.damageName === '床版ひびわれ') && !res.crackWidth) {
+                // 文脈依存: "0.2" のような単独の小さな数値(例えば1.0未満)はひび幅とみなす
+                // ただし既に長さとして抽出済みの値は rawText から除去済み
+
                 const smallNumMatch = rawText.match(/(?:^|\s)(\d+(\.\d+)?)\s*(ミリ|mm)?(?=\s|$|[^0-9\.])/);
                 if (smallNumMatch) {
                     const v = parseFloat(smallNumMatch[1]);
-                    // 1.0未満、かつ単位がmでないならひび幅とみなす(リスクはあるが、音声入力の特性上有効)
+                    // 1.0未満、かつ単位がmでないならひび幅とみなす
                     if (v < 1.0 || smallNumMatch[3]) {
                         let unit = smallNumMatch[3] || "";
                         if (unit === "ミリ") unit = "mm";
@@ -1005,13 +1033,11 @@
                 }
             }
 
-            // 7. 数量 (dimensions) の抽出
+            // 7. 数量 (dimensions) の抽出 — 残りの数値を処理
 
             // まず計算式パターン "2.0 * 3.0" (空白許容)
-            // \s* を挟む
             const calcMatch = rawText.match(/(\d+(\.\d+)?)\s*(\*|×|かける)\s*(\d+(\.\d+)?)/);
             if (calcMatch) {
-                // オペランドを取得してスケーリング
                 let v1 = parseFloat(calcMatch[1]);
                 let v2 = parseFloat(calcMatch[4]);
 
@@ -1019,8 +1045,6 @@
                 if (v1 >= 10) v1 = v1 / 1000;
                 if (v2 >= 10) v2 = v2 / 1000;
 
-                // 丸め処理 (String化して結合)
-                // 有効数字等は適当 (例: 0.2*0.1)
                 const s1 = Math.round(v1 * 10000) / 10000;
                 const s2 = Math.round(v2 * 10000) / 10000;
 
@@ -1029,10 +1053,7 @@
                 rawText = rawText.replace(calcMatch[0], "");
             }
 
-            // 残りの数値+単位、あるいは "長さXX"
-
             // 単位付きの検出 (mm, cm, m)
-            // グローバルマッチなので、execループで回す
             const unitRegex = /(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)/g;
             let m;
             while ((m = unitRegex.exec(rawText)) !== null) {
@@ -1047,38 +1068,10 @@
                 // mはそのまま
 
                 res.dimensions.push(Math.round(val * 10000) / 10000);
-
-                // マッチした部分を消去して、後続の長さ判定で誤爆しないようにする
-                // execの進行に影響しないよう、置換はループ後あるいは...
-                // いや、replaceするとインデックスずれるので危険。
-                // placeholderにするか、あるいは単純に長さ判定のRegexを工夫するか。
-                // ここでは簡単に、rawTextから該当文字列を空白置換してしまう。
-                // ただし replace は最初の1つだけ消すので、ユニークな文字列ならOKだが...
-                // 安全策として、ここでは消さず、次のLength判定で「単位が後ろにないこと」を確認するRegexにする。
             }
 
             // 既にユニット付きで処理された箇所を消す（簡易版）
-            // 上記ループとは別に replaceAll 的に消す
             rawText = rawText.replace(/(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)/g, "");
-
-            // 単位なしだが "長さ" "L" に続く数値
-            // 例: "長さ5" -> 5m, "長さ500" -> 0.5m (User request: m換算)
-            const lengthMatch = rawText.match(/(長さ|L)\s*(\d+(\.\d+)?)/);
-            if (lengthMatch) {
-                let val = parseFloat(lengthMatch[2]);
-
-                // 換算ロジック (ヒューリスティック)
-                // 10以上ならmmとみなしてmに変換する (現場慣習)
-                // 0.5 -> 0.5m
-                // 500 -> 0.5m
-                // 5 -> 5m (これは微妙だが、通常5mのひび割れは長い。5mmなら0.005)
-                // 閾値をどうするか？とりあえず「整数で10以上」あるいは「数値として10以上」ならmm扱いにする？
-                if (val >= 10) {
-                    val = val / 1000;
-                }
-
-                res.dimensions.push(Math.round(val * 10000) / 10000);
-            }
 
             return res;
         }
