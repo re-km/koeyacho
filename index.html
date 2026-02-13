@@ -421,7 +421,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.6.0 (Full Damage Keywords) | Ready</div>
+    <div class="footer" id="systemStatus">v2.6.1 (Sheet Persistence) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -577,7 +577,10 @@
         let config = {
             gasUrl: localStorage.getItem('gasUrl') || '',
             bridges: JSON.parse(localStorage.getItem('bridges') || '[]'),
-            currentBridgeId: localStorage.getItem('currentBridgeId') || ''
+            currentBridgeId: localStorage.getItem('currentBridgeId') || '',
+            // シート選択状態の永続化
+            currentPart: localStorage.getItem('currentPart') || '',
+            currentSpan: localStorage.getItem('currentSpan') || ''
         };
 
         let appState = {
@@ -770,6 +773,17 @@
         window.onload = () => {
             loadData();
             document.getElementById('gasUrl').value = config.gasUrl;
+
+            // 保存されたシート選択状態を復元
+            if (config.currentPart) {
+                document.getElementById('partSelect').value = config.currentPart;
+            }
+            if (config.currentSpan) {
+                document.getElementById('spanInput').value = config.currentSpan;
+            }
+            // ラベルの更新（復元された値に基づく）
+            updateSheetLabel();
+
             renderBridgeSelect();
             updateUI();
 
@@ -1297,8 +1311,16 @@
             const span = document.getElementById('spanInput').value;
             return span ? part + span : part;
         }
-        document.getElementById('partSelect').addEventListener('change', updateSheetLabel);
-        document.getElementById('spanInput').addEventListener('input', updateSheetLabel);
+        document.getElementById('partSelect').addEventListener('change', (e) => {
+            config.currentPart = e.target.value;
+            localStorage.setItem('currentPart', config.currentPart);
+            updateSheetLabel();
+        });
+        document.getElementById('spanInput').addEventListener('input', (e) => {
+            config.currentSpan = e.target.value;
+            localStorage.setItem('currentSpan', config.currentSpan);
+            updateSheetLabel();
+        });
 
         function updateSheetLabel() {
             document.getElementById('currentSheetName').textContent = getCurrentSheetName();
