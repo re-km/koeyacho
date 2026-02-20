@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" href="icon.png">
+    <script src="koeyacho_dictionary.js"></script>
     <style>
         :root {
             /* 配色テーマ（VS Code Light系） */
@@ -239,6 +240,42 @@
             background: var(--success-color);
         }
 
+        /* クイック入力（ワンタップボタン） */
+        .quick-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .quick-tag-btn {
+            background: #e1f0fa;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-tag-btn:active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* 辞書登録ボタン */
+        .dict-btn {
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            color: #555;
+            padding: 4px 8px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+        }
+
         /* データリスト */
         .list-header {
             display: flex;
@@ -390,6 +427,18 @@
             <input type="text" id="manualInput" class="input-text" style="margin-bottom:0"
                 placeholder="例: 床版、ひび割れ、L0.5">
             <button id="manualParseBtn" class="btn-outline">解析</button>
+            <button onclick="openDictModal()" class="dict-btn" title="独自の誤変換を登録">🔧辞書</button>
+        </div>
+
+        <!-- クイック入力ボタン -->
+        <div class="quick-tags">
+            <button class="quick-tag-btn" onclick="insertQuickTag('床版')">床版</button>
+            <button class="quick-tag-btn" onclick="insertQuickTag('支承')">支承</button>
+            <button class="quick-tag-btn" onclick="insertQuickTag('遊間')">遊間</button>
+            <button class="quick-tag-btn" onclick="insertQuickTag('ひびわれ')">ひびわれ</button>
+            <button class="quick-tag-btn" onclick="insertQuickTag('エフロレッセンス')">エフロ</button>
+            <button class="quick-tag-btn" onclick="insertQuickTag('剥離・鉄筋露出')">剥離</button>
+            <button class="quick-tag-btn" onclick="insertQuickTag('漏水・遊離石灰')">漏水</button>
         </div>
 
         <button id="micBtn" class="mic-btn">🎙️ 音声入力</button>
@@ -421,7 +470,7 @@
         </button>
     </div>
 
-    <div class="footer" id="systemStatus">v2.6.1 (Sheet Persistence) | Ready</div>
+    <div class="footer" id="systemStatus">v2.7.0 (Text Correction & User Dict) | Ready</div>
 
 
     <!-- データ管理モーダル -->
@@ -567,6 +616,36 @@
                 <button class="btn-outline" onclick="closeEditModal()">キャンセル</button>
                 <button class="btn-success" onclick="saveEdit()">保存</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 辞書登録モーダル -->
+    <div id="dictModal" class="modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2200; align-items:center; justify-content:center;">
+        <div class="card" style="width:90%; max-width:400px; margin: auto; background:#fff;">
+            <h3>🔧 独自誤変換の登録</h3>
+            <p style="font-size:0.8em; color:var(--sub-text); margin-bottom:15px;">
+                音声入力で間違って認識された言葉を登録すると、次回から自動で補正されます。（この端末に保存されます）
+            </p>
+
+            <label style="font-size:0.8em; font-weight:bold;">誤認識された言葉 (例: 大判)</label>
+            <input type="text" id="dictPatternInput" class="input-text" placeholder="間違った用語を入力">
+
+            <label style="font-size:0.8em; font-weight:bold;">変換したい正しい用語 (例: 床版)</label>
+            <input type="text" id="dictCorrectInput" class="input-text" placeholder="正しい部材名や変状名">
+
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button class="btn-outline" onclick="closeDictModal()">キャンセル</button>
+                <button class="btn-success" onclick="saveUserDict()">登録する</button>
+            </div>
+
+            <hr style="margin:15px 0;">
+            <div style="font-size:0.85em; font-weight:bold; margin-bottom:5px;">登録済みの言葉</div>
+            <div id="userDictList" style="max-height:100px; overflow-y:auto; font-size:0.8em;">
+                <!-- 登録リストがここに入る -->
+            </div>
+            <button class="btn-outline" style="font-size:0.7em; margin-top:10px; color:var(--error-color)"
+                onclick="clearUserDict()">全クリア</button>
         </div>
     </div>
 
@@ -1007,6 +1086,94 @@
         }
 
         // ==========================================
+        // ユーザー辞書・クイック入力UI
+        // ==========================================
+        function insertQuickTag(word) {
+            // 手動入力欄の末尾（またはカーソル位置）に挿入する簡易実装
+            const manualInput = document.getElementById('manualInput');
+            manualInput.value = (manualInput.value + " " + word).trim();
+            // 挿入後すぐに解析を実行する場合は以下のコメントアウトを外す
+            // document.getElementById('manualParseBtn').click();
+        }
+
+        function openDictModal() {
+            document.getElementById('dictModal').style.display = 'flex';
+            renderUserDictList();
+        }
+
+        function closeDictModal() {
+            document.getElementById('dictModal').style.display = 'none';
+            document.getElementById('dictPatternInput').value = '';
+            document.getElementById('dictCorrectInput').value = '';
+        }
+
+        function saveUserDict() {
+            const pattern = document.getElementById('dictPatternInput').value.trim();
+            const correct = document.getElementById('dictCorrectInput').value.trim();
+
+            if (!pattern || !correct) {
+                alert('「誤認識された言葉」と「正しい用語」の両方を入力してください。');
+                return;
+            }
+
+            let userDict = [];
+            const json = localStorage.getItem('userErrorDictionary');
+            if (json) {
+                try { userDict = JSON.parse(json); } catch (e) { }
+            }
+
+            // 既に同じ誤認識パターンがあれば削除して上書き
+            userDict = userDict.filter(item => item.pattern !== pattern);
+            userDict.push({ pattern, correct });
+
+            localStorage.setItem('userErrorDictionary', JSON.stringify(userDict));
+
+            alert(`「${pattern}」を「${correct}」に補正するよう登録しました！`);
+
+            document.getElementById('dictPatternInput').value = '';
+            renderUserDictList();
+        }
+
+        function renderUserDictList() {
+            const listDiv = document.getElementById('userDictList');
+            let userDict = [];
+            const json = localStorage.getItem('userErrorDictionary');
+            if (json) {
+                try { userDict = JSON.parse(json); } catch (e) { }
+            }
+
+            if (userDict.length === 0) {
+                listDiv.innerHTML = '<span style="color:#999">登録はありません</span>';
+                return;
+            }
+
+            listDiv.innerHTML = userDict.map(item =>
+                `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:2px 0;">
+                    <span><del style="color:#999">${item.pattern}</del> ➡️ <b>${item.correct}</b></span>
+                    <button style="border:none; background:none; color:red; cursor:pointer;" onclick="deleteUserDictItem('${item.pattern}')">×</button>
+                </div>`
+            ).join('');
+        }
+
+        function deleteUserDictItem(pattern) {
+            let userDict = [];
+            const json = localStorage.getItem('userErrorDictionary');
+            if (json) {
+                try { userDict = JSON.parse(json); } catch (e) { }
+            }
+            userDict = userDict.filter(item => item.pattern !== pattern);
+            localStorage.setItem('userErrorDictionary', JSON.stringify(userDict));
+            renderUserDictList();
+        }
+
+        function clearUserDict() {
+            if (!confirm('登録した独自の辞書を全て削除します。よろしいですか？')) return;
+            localStorage.removeItem('userErrorDictionary');
+            renderUserDictList();
+        }
+
+
+        // ==========================================
         // 音声認識 & パース
         // ==========================================
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1076,6 +1243,47 @@
             // "かける" -> "*"
             rawText = rawText.replace(/かける|×/g, "*");
 
+            // ==========================================
+            // [NEW] 1. 誤変換の強制置換処理 (JS辞書 + ユーザー辞書)
+            // ==========================================
+            let mergedDictionary = [];
+            // (1) システム組み込み辞書 (koeyacho_dictionary.js で定義済みの errorDictionary)
+            if (typeof errorDictionary !== 'undefined') {
+                mergedDictionary = [...errorDictionary];
+            }
+
+            // (2) ユーザーのローカル辞書 (localStorage)
+            const userDictJson = localStorage.getItem('userErrorDictionary');
+            if (userDictJson) {
+                try {
+                    const userDict = JSON.parse(userDictJson);
+                    // userDict = [{ correct: "正", pattern: "誤" }, ...]
+                    userDict.forEach(item => {
+                        // 既存のまとまりの形に合わせて追加
+                        mergedDictionary.push({
+                            correct: item.correct,
+                            patterns: [item.pattern]
+                        });
+                    });
+                } catch (e) {
+                    console.error("User dictionary parse fail", e);
+                }
+            }
+
+            // (3) 置換実行
+            // ※より長いパターン、または完全一致を安全に行うためにループする
+            for (const dictItem of mergedDictionary) {
+                if (!dictItem.correct || !dictItem.patterns) continue;
+                for (const pattern of dictItem.patterns) {
+                    if (!pattern) continue;
+                    // text中のpatternを全てcorrectに置換する。
+                    // 例: "商板" -> "床版", "夕刊" -> "遊間"
+                    // (正規表現でグローバル置換する場合は、特殊文字のエスケープが必要ですが、ここでは単純文字列として置換します。複数回出現も考慮）
+                    const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+                    rawText = rawText.replace(regex, dictItem.correct);
+                }
+            }
+
             let res = {
                 member: "",
                 elementNumber: "",
@@ -1088,7 +1296,7 @@
                 remarks: ""
             };
 
-            // 1. 部材の抽出（同音漢字パターン + エイリアス対応）
+            // 2. 部材の抽出（同音漢字パターン + エイリアス対応）
             for (const mk of memberKeywords) {
                 // (a) 正式名称で完全一致検索
                 const nameRegex = new RegExp(mk.name + "\\s*([A-Za-z0-9\\-]+)?");
