@@ -7,21 +7,17 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>koeyacho v2.0</title>
+    <title>koeyacho v3.0</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" href="icon.png">
-    <script src="koeyacho_dictionary.js"></script>
     <style>
         :root {
-            /* 配色テーマ（VS Code Light系） */
             --bg-color: #f3f3f3;
             --text-color: #333333;
             --card-bg: #ffffff;
             --border-color: #e0e0e0;
             --accent-color: #007acc;
-            /* VS Code Blue */
-            --accent-hover: #005f9e;
             --success-color: #16825d;
             --warning-color: #ea5c00;
             --error-color: #d13438;
@@ -36,7 +32,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background: var(--bg-color);
             color: var(--text-color);
             min-height: 100vh;
@@ -51,13 +47,8 @@
             color: var(--text-color);
             margin-bottom: 15px;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
 
-        /* 共通カードスタイル */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -67,67 +58,54 @@
             box-shadow: var(--shadow);
         }
 
-        /* 設定カード（開閉式） */
-        .settings-header {
+        .select-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            padding: 5px 0;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .settings-title {
-            font-weight: 600;
-            font-size: 0.9em;
-            color: var(--sub-text);
-        }
-
-        .settings-body {
-            display: none;
-            margin-top: 15px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 15px;
-        }
-
-        .settings-body.open {
-            display: block;
-        }
-
-        .input-text {
-            width: 100%;
-            padding: 8px;
+        select,
+        input[type="number"],
+        input[type="text"] {
+            padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            font-size: 0.9em;
-            margin-bottom: 10px;
-            background: #fafafa;
+            background: #fff;
+            font-size: 1em;
+            width: 100%;
         }
 
-        /* ボタン共通 */
+        .flex-grow {
+            flex: 1;
+        }
+
         button {
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-family: inherit;
             transition: opacity 0.2s;
+            padding: 8px 16px;
+            font-weight: 600;
         }
 
         button:active {
             opacity: 0.7;
         }
 
-        .btn-primary {
-            background: var(--accent-color);
-            color: white;
-            padding: 8px 16px;
-            font-weight: 600;
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
         }
 
         .btn-success {
             background: var(--success-color);
             color: white;
-            padding: 8px 16px;
-            font-weight: 600;
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 1.1em;
         }
 
         .btn-danger {
@@ -137,60 +115,15 @@
             padding: 4px 8px;
         }
 
-        .btn-outline {
-            background: white;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 8px 12px;
-        }
-
-        /* セレクター */
-        .select-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        select,
-        input[type="number"] {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: #fff;
-            color: var(--text-color);
-            font-size: 1em;
-        }
-
-        .flex-grow {
-            flex: 1;
-        }
-
-        /* シート表示 */
-        .sheet-badge {
-            display: inline-block;
-            background: #e1f0fa;
-            color: var(--accent-color);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        /* 音声入力エリア */
-        .input-card {
-            text-align: center;
-            border-left: 4px solid var(--accent-color);
-        }
-
         .mic-btn {
             width: 100%;
-            padding: 20px;
+            padding: 25px;
             background: var(--accent-color);
             color: white;
-            font-size: 1.2em;
+            font-size: 1.4em;
             border-radius: 8px;
-            margin: 10px 0;
             box-shadow: 0 4px 6px rgba(0, 122, 204, 0.2);
+            margin-bottom: 10px;
         }
 
         .mic-btn.listening {
@@ -199,84 +132,24 @@
         }
 
         .result-box {
+            text-align: center;
             min-height: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px dashed #ccc;
         }
 
         .recognized-text {
-            color: var(--sub-text);
-            font-size: 0.85em;
-            margin-bottom: 5px;
-        }
-
-        .parsed-result {
-            font-weight: bold;
             font-size: 1.1em;
-        }
-
-        .parsed-info span {
-            margin: 0 5px;
-        }
-
-        .tag {
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.8em;
-            color: white;
-        }
-
-        .tag-member {
-            background: #444;
-        }
-
-        .tag-damage {
-            background: var(--accent-color);
-        }
-
-        .tag-dim {
-            background: var(--success-color);
-        }
-
-        /* クイック入力（ワンタップボタン） */
-        .quick-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 15px;
-            justify-content: center;
-        }
-
-        .quick-tag-btn {
-            background: #e1f0fa;
-            border: 1px solid var(--accent-color);
+            font-weight: bold;
             color: var(--accent-color);
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.85em;
-            cursor: pointer;
-            transition: all 0.2s;
         }
 
-        .quick-tag-btn:active {
-            background: var(--accent-color);
-            color: white;
-        }
-
-        /* 辞書登録ボタン */
-        .dict-btn {
-            background: #f8f9fa;
-            border: 1px solid #ccc;
-            color: #555;
-            padding: 4px 8px;
-            font-size: 0.9em;
-            display: flex;
-            align-items: center;
-        }
-
-        /* データリスト */
         .list-header {
             display: flex;
             justify-content: space-between;
@@ -286,12 +159,58 @@
             padding-bottom: 5px;
         }
 
-        .list-title {
-            font-weight: 600;
-            font-size: 1em;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95em;
         }
 
-        /* 同期ステータス */
+        th,
+        td {
+            padding: 10px 5px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .status-ok {
+            color: var(--success-color);
+            font-size: 0.8em;
+        }
+
+        .status-wait {
+            color: var(--warning-color);
+            font-size: 0.8em;
+        }
+
+        .raw-text-display {
+            font-weight: 500;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 6px;
+            font-size: 0.95em;
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--sub-text);
+            font-size: 0.75em;
+            margin-top: 20px;
+        }
+
+        .sheet-badge {
+            background: #e1f0fa;
+            color: var(--accent-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
         .sync-alert {
             background: #fff4e5;
             border: 1px solid var(--warning-color);
@@ -299,103 +218,27 @@
             padding: 10px;
             border-radius: 6px;
             margin-bottom: 15px;
-            display: flex;
+            display: none;
             justify-content: space-between;
             align-items: center;
-            display: none;
-            /* 初期非表示 */
-        }
-
-        .sync-btn {
-            background: var(--warning-color);
-            color: white;
-            font-size: 0.9em;
-            padding: 6px 12px;
-        }
-
-        /* テーブル */
-        .table-container {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9em;
-        }
-
-        th {
-            text-align: left;
-            color: var(--sub-text);
-            font-weight: normal;
-            font-size: 0.8em;
-            padding: 5px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        td {
-            padding: 8px 5px;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-        }
-
-        .status-icon {
-            font-size: 0.8em;
-            margin-right: 4px;
-        }
-
-        .status-ok {
-            color: var(--success-color);
-        }
-
-        .status-wait {
-            color: var(--warning-color);
-        }
-
-        /* フッター */
-        .footer {
-            text-align: center;
-            color: var(--sub-text);
-            font-size: 0.75em;
-            margin-top: 20px;
         }
     </style>
 </head>
 
 <body>
-    <h1>koeyacho</h1>
+    <h1>koeyacho v3.0</h1>
 
-    <!-- 未送信アラート -->
     <div id="syncAlert" class="sync-alert">
         <span>⚠️ 未送信データ: <strong id="unsentCount">0</strong>件</span>
-        <button class="sync-btn" onclick="syncAllData()">クラウドに同期</button>
-    </div>
-
-    <!-- 設定エリア -->
-    <div class="card">
-        <div class="settings-header" onclick="toggleSettings()">
-            <span class="settings-title">⚙️ 設定 (GAS URL & 橋選択)</span>
-            <span style="font-size:0.8em">▼</span>
-        </div>
-        <div class="settings-body" id="settingsBody">
-            <label style="font-size:0.8em; display:block; margin-bottom:5px;">GAS Web App URL</label>
-            <input type="text" class="input-text" id="gasUrl" placeholder="https://script.google.com/..."
-                onchange="saveConfig()">
-            <div style="font-size:0.8em; color:var(--sub-text); margin-top:5px;">
-                橋リスト取得ステータス: <span id="connectionStatus">未接続</span>
-            </div>
-            <hr style="margin:15px 0; border:none; border-top:1px solid #eee;">
-            <button class="btn-outline" style="width:100%; font-size:0.9em" onclick="window.location.reload(true)">↻
-                アプリを再読み込み (更新)</button>
-        </div>
+        <button class="btn-outline" style="background:var(--warning-color); color:white; border:none;"
+            onclick="syncAllData()">再送信</button>
     </div>
 
     <!-- 橋・場所選択 -->
     <div class="card">
         <div class="select-row">
             <select id="bridgeSelect" class="flex-grow">
-                <option value="">橋を選択してください</option>
+                <option value="">（読込中...）</option>
             </select>
         </div>
         <div class="select-row">
@@ -408,491 +251,139 @@
             </select>
             <input type="number" id="spanInput" placeholder="径間" style="width: 80px;">
         </div>
-        <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:5px;">
-            <button class="btn-outline" onclick="fetchBridgeList()" style="padding:4px 8px; font-size:0.9em;">🔄
-                同期</button>
-            <span class="sheet-badge">Sheet: <span id="currentSheetName">下面</span></span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+            <button id="openSheetBtn" class="btn-outline" style="font-size:0.85em; display:none;"
+                onclick="openCurrentSpreadsheet()">🔗 シートを開く</button>
+            <div style="text-align:right; flex-grow:1;">
+                <span class="sheet-badge">入力先: <span id="currentSheetName">下面</span></span>
+            </div>
         </div>
     </div>
 
     <!-- 音声入力 -->
-    <div class="card input-card">
-        <div class="result-box">
-            <div id="recognizedText" class="recognized-text">待機中...</div>
-            <div id="parsedResult" class="parsed-result"></div>
-        </div>
-
-        <!-- 手動入力エリア -->
-        <div style="display:flex; gap:5px; margin-bottom:10px;">
-            <input type="text" id="manualInput" class="input-text" style="margin-bottom:0"
-                placeholder="例: 床版、ひび割れ、L0.5">
-            <button id="manualParseBtn" class="btn-outline">解析</button>
-            <button onclick="openDictModal()" class="dict-btn" title="独自の誤変換を登録">🔧辞書</button>
-        </div>
-
-        <!-- クイック入力ボタン -->
-        <div class="quick-tags">
-            <button class="quick-tag-btn" onclick="insertQuickTag('床版')">床版</button>
-            <button class="quick-tag-btn" onclick="insertQuickTag('支承')">支承</button>
-            <button class="quick-tag-btn" onclick="insertQuickTag('遊間')">遊間</button>
-            <button class="quick-tag-btn" onclick="insertQuickTag('ひびわれ')">ひびわれ</button>
-            <button class="quick-tag-btn" onclick="insertQuickTag('エフロレッセンス')">エフロ</button>
-            <button class="quick-tag-btn" onclick="insertQuickTag('剥離・鉄筋露出')">剥離</button>
-            <button class="quick-tag-btn" onclick="insertQuickTag('漏水・遊離石灰')">漏水</button>
-        </div>
-
+    <div class="card" style="border-left: 4px solid var(--accent-color);">
         <button id="micBtn" class="mic-btn">🎙️ 音声入力</button>
-        <button id="addBtn" class="btn-success" style="width:100%; display:none;">✓ 記録する</button>
+
+        <div class="result-box">
+            <div style="font-size:0.8em; color:var(--sub-text); margin-bottom:5px;">認識結果</div>
+            <div id="recognizedText" class="recognized-text">待機中...</div>
+        </div>
+
+        <button id="addBtn" class="btn-success" style="display:none;">✓ 記録する</button>
     </div>
 
-    <!-- データリスト -->
+    <!-- 入力履歴 -->
     <div class="card">
         <div class="list-header">
-            <span class="list-title">記録データ (<span id="dataCount">0</span>)</span>
+            <span style="font-weight:600;">入力履歴 (<span id="dataCount">0</span>件)</span>
             <div>
-                <button class="btn-outline" style="font-size:0.8em" onclick="downloadCSV()">CSV</button>
-                <button class="btn-outline" style="font-size:0.8em; color:var(--error-color);"
-                    onclick="clearAllData()">クリア</button>
+                <button class="btn-outline" style="font-size:0.8em; padding:4px 8px;"
+                    onclick="fetchBridgeList()">🔃リスト更新</button>
+                <button class="btn-outline" style="font-size:0.8em; padding:4px 8px; color:var(--error-color);"
+                    onclick="clearAllData()">全消去</button>
             </div>
         </div>
-        <div class="table-container">
-            <table id="dataTable">
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table>
                 <tbody id="dataBody"></tbody>
             </table>
-            <div id="emptyState" style="text-align:center; padding:20px; color:var(--sub-text);">データなし</div>
+            <div id="emptyState" style="text-align:center; padding:20px; color:var(--sub-text);">履歴はありません</div>
         </div>
     </div>
 
-    <!-- データ管理ボタン (Footer) -->
-    <div style="margin-top: 20px; text-align: center;">
-        <button class="btn-outline" onclick="openDataManager()" style="width:100%; max-width:400px; padding:10px;">
-            📊 保存データを確認・編集 (データ管理)
-        </button>
-    </div>
-
-    <div class="footer" id="systemStatus">v2.7.0 (Text Correction & User Dict) | Ready</div>
-
-
-    <!-- データ管理モーダル -->
-    <div id="dataManagerModal" class="modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:2000; overflow-y:auto;">
-        <div style="padding:15px; max-width:800px; margin:0 auto;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h2>📊 データ管理</h2>
-                <button class="btn-outline" onclick="closeDataManager()" style="padding:5px 15px;">閉じる</button>
-            </div>
-
-            <div class="card" style="background:#f8f9fa;">
-                <label style="font-size:0.8em; font-weight:bold;">絞り込み (フィルタ)</label>
-                <div style="display:flex; gap:10px; margin-top:5px; flex-wrap:wrap;">
-                    <select id="dmFilterBridge" class="input-text" style="margin:0; flex:1;"
-                        onchange="updateSheetFilter()">
-                        <option value="">全ての橋</option>
-                    </select>
-                    <select id="dmFilterSheet" class="input-text" style="margin:0; flex:1;"
-                        onchange="renderDataTable()">
-                        <option value="">全てのシート</option>
-                    </select>
-                </div>
-                <div style="margin-top:10px; text-align:right;">
-                    <button class="btn-outline" onclick="exportFilteredCSV()">📥 表示中データをCSV出力</button>
-                </div>
-            </div>
-
-            <div style="overflow-x:auto;">
-                <table id="dmTable" style="width:100%; border-collapse:collapse; font-size:0.85em;">
-                    <thead>
-                        <tr style="background:#eee; text-align:left;">
-                            <th style="padding:8px; border-bottom:2px solid #ddd;">No</th>
-                            <th style="padding:8px; border-bottom:2px solid #ddd;">部材/要素</th>
-                            <th style="padding:8px; border-bottom:2px solid #ddd;">変状</th>
-                            <th style="padding:8px; border-bottom:2px solid #ddd;">値(幅/数)</th>
-                            <th style="padding:8px; border-bottom:2px solid #ddd;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dmTableBody"></tbody>
-                </table>
-            </div>
-            <div id="dmEmpty" style="text-align:center; padding:30px; color:#aaa; display:none;">
-                データがありません
-            </div>
-        </div>
-    </div>
-
-    <!-- 編集モーダル (Nested or Overlay) -->
-    <div id="editModal" class="modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2100; align-items:center; justify-content:center;">
-        <div class="card"
-            style="width:90%; max-width:400px; margin: auto; max-height:90vh; overflow-y:auto; background:#fff;">
-            <h3 id="editModalTitle">✏️ 記録の編集</h3>
-            <input type="hidden" id="editId">
-
-            <!-- Row 1: Context/Photos -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">前回調書</label>
-                    <input type="text" id="editPrevRecord" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">写真番号</label>
-                    <input type="text" id="editPhotoNo" class="input-text">
-                </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">同アングル写</label>
-                    <input type="text" id="editSameAngle" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">応急措置写</label>
-                    <input type="text" id="editEmergency" class="input-text">
-                </div>
-            </div>
-
-            <!-- Row 2: Member Info -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">部材</label>
-                    <input type="text" id="editMember" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">材料</label>
-                    <input type="text" id="editMaterial" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">要素番号</label>
-                    <input type="text" id="editElementNumber" class="input-text">
-                </div>
-            </div>
-
-            <!-- Row 3: Damage Info -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">変状 (ID)</label>
-                    <input type="text" id="editDamageName" class="input-text" placeholder="例: 6">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">程度</label>
-                    <input type="text" id="editDegree" class="input-text">
-                </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">ひび間隔</label>
-                    <input type="text" id="editCrackSpacing" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">ひび幅</label>
-                    <input type="text" id="editCrackWidth" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">数量/寸法</label>
-                    <input type="text" id="editDimensions" class="input-text">
-                </div>
-            </div>
-
-            <!-- Row 4: Assessment -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">判定</label>
-                    <input type="text" id="editJudgment" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">進行</label>
-                    <input type="text" id="editProgress" class="input-text">
-                </div>
-                <div>
-                    <label style="font-size:0.8em; font-weight:bold;">第三者被害</label>
-                    <input type="text" id="editThirdParty" class="input-text">
-                </div>
-            </div>
-
-            <label style="font-size:0.8em; font-weight:bold;">備考</label>
-            <input type="text" id="editRemarks" class="input-text">
-
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
-                <button class="btn-outline" onclick="closeEditModal()">キャンセル</button>
-                <button class="btn-success" onclick="saveEdit()">保存</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 辞書登録モーダル -->
-    <div id="dictModal" class="modal"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2200; align-items:center; justify-content:center;">
-        <div class="card" style="width:90%; max-width:400px; margin: auto; background:#fff;">
-            <h3>🔧 独自誤変換の登録</h3>
-            <p style="font-size:0.8em; color:var(--sub-text); margin-bottom:15px;">
-                音声入力で間違って認識された言葉を登録すると、次回から自動で補正されます。（この端末に保存されます）
-            </p>
-
-            <label style="font-size:0.8em; font-weight:bold;">誤認識された言葉 (例: 大判)</label>
-            <input type="text" id="dictPatternInput" class="input-text" placeholder="間違った用語を入力">
-
-            <label style="font-size:0.8em; font-weight:bold;">変換したい正しい用語 (例: 床版)</label>
-            <input type="text" id="dictCorrectInput" class="input-text" placeholder="正しい部材名や変状名">
-
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
-                <button class="btn-outline" onclick="closeDictModal()">キャンセル</button>
-                <button class="btn-success" onclick="saveUserDict()">登録する</button>
-            </div>
-
-            <hr style="margin:15px 0;">
-            <div style="font-size:0.85em; font-weight:bold; margin-bottom:5px;">登録済みの言葉</div>
-            <div id="userDictList" style="max-height:100px; overflow-y:auto; font-size:0.8em;">
-                <!-- 登録リストがここに入る -->
-            </div>
-            <button class="btn-outline" style="font-size:0.7em; margin-top:10px; color:var(--error-color)"
-                onclick="clearUserDict()">全クリア</button>
-        </div>
-    </div>
+    <div class="footer">v3.0.0 (Gemini AI Powered)</div>
 
     <script>
         // ==========================================
-        // コンフィグ & ステート
+        // 設定エリア (ハードコードによる永続化)
         // ==========================================
+        // 【重要】GASをデプロイしたWeb App URLをここに直接記述してください。
+        // これにより、iPhone側でキャッシュが飛んでもURL設定が消滅しません。
+        const HARDCODED_GAS_URL = "ここにGASのURLを貼り付けます";
+
         let config = {
-            gasUrl: localStorage.getItem('gasUrl') || '',
+            gasUrl: localStorage.getItem('gasUrl') || HARDCODED_GAS_URL,
             bridges: JSON.parse(localStorage.getItem('bridges') || '[]'),
             currentBridgeId: localStorage.getItem('currentBridgeId') || '',
-            // シート選択状態の永続化
-            currentPart: localStorage.getItem('currentPart') || '',
+            currentPart: localStorage.getItem('currentPart') || '下面',
             currentSpan: localStorage.getItem('currentSpan') || ''
         };
 
         let appState = {
-            data: [], // { id, timestamp, bridgeId, sheetName, content, ... , synced: boolean }
-            currentParsed: null
+            data: [], // 送信履歴配列
+            currentRawText: "" // 現在マイクで拾ったテキスト
         };
 
         // ==========================================
-        // 辞書データ (変更なし)
-        // ==========================================
-        const damageTypes = {
-            1: "腐食", 2: "亀裂", 3: "ゆるみ・脱落", 4: "破断", 5: "防食機能の劣化", 6: "ひびわれ", 7: "剥離・鉄筋露出", 8: "漏水・遊離石灰", 9: "抜け落ち", 10: "補修補強材の損傷", 11: "床版ひびわれ", 12: "うき", 13: "遊間の異常", 14: "路面の凹凸", 15: "舗装の異常", 16: "支承部の機能障害", 17: "その他", 18: "定着部の異常", 19: "変色・劣化", 20: "漏水・滞水", 21: "異常な音・振動", 22: "異常なたわみ", 23: "変形・欠損", 24: "土砂詰まり", 25: "沈下・移動・傾斜", 26: "洗掘"
-        };
-        const damageKeywords = [
-            { name: "床版ひびわれ", aliases: ["床版ひび割れ", "床版クラック", "床版ひび"], id: 11 },
-            { name: "腐食", aliases: ["ふしょく", "サビ", "錆", "さび"], id: 1 },
-            { name: "亀裂", aliases: ["きれつ", "クラック"], id: 2 },
-            { name: "ゆるみ・脱落", aliases: ["ゆるみ脱落", "ゆるみ", "脱落", "だつらく"], id: 3 },
-            { name: "破断", aliases: ["はだん"], id: 4 },
-            { name: "防食機能の劣化", aliases: ["防食", "ぼうしょく", "防食機能"], id: 5 },
-            { name: "ひびわれ", aliases: ["ひび割れ", "クラック", "ひび", "ヒビ"], id: 6 },
-            { name: "剥離・鉄筋露出", aliases: ["はくり", "剥離", "鉄筋露出", "露出", "剥離鉄筋露出"], id: 7 },
-            { name: "漏水・遊離石灰", aliases: ["ろうすい", "漏水", "遊離石灰", "エフロ", "白華", "漏水遊離石灰"], id: 8 },
-            { name: "抜け落ち", aliases: ["ぬけおち"], id: 9 },
-            { name: "補修補強材の損傷", aliases: ["補修補強材の損傷", "再劣化", "さいれっか", "補修補強材"], id: 10 },
-            { name: "うき", aliases: ["浮き", "ウキ"], id: 12 },
-            { name: "遊間の異常", aliases: ["ゆうかん", "遊間", "すきま"], id: 13 },
-            { name: "路面の凹凸", aliases: ["凹凸", "おうとつ", "路面凹凸"], id: 14 },
-            { name: "舗装の異常", aliases: ["舗装の異常", "ほそうのいじょう"], id: 15 },
-            { name: "支承部の機能障害", aliases: ["支承の機能障害", "ししょうのきのうしょうがい", "支承機能障害"], id: 16 },
-            { name: "その他", aliases: ["そのた"], id: 17 },
-            { name: "定着部の異常", aliases: ["定着部の異常", "ていちゃくぶ", "定着部"], id: 18 },
-            { name: "変色・劣化", aliases: ["変色劣化", "変色", "劣化", "へんしょく", "れっか"], id: 19 },
-            { name: "漏水・滞水", aliases: ["漏水滞水", "滞水", "たいすい"], id: 20 },
-            { name: "異常な音・振動", aliases: ["異常な音振動", "異常な音", "異常な振動", "いじょうなおと"], id: 21 },
-            { name: "異常なたわみ", aliases: ["たわみ", "撓み"], id: 22 },
-            { name: "変形・欠損", aliases: ["変形欠損", "変形", "欠損", "へんけい", "けっそん"], id: 23 },
-            { name: "土砂詰まり", aliases: ["土砂づまり", "どしゃづまり", "土砂つまり"], id: 24 },
-            { name: "沈下・移動・傾斜", aliases: ["沈下移動傾斜", "沈下", "移動", "傾斜", "ちんか"], id: 25 },
-            { name: "洗掘", aliases: ["せんくつ"], id: 26 }
-        ];
-        // 部材キーワード（同音漢字パターンマッチ方式）
-        // 音声認識は毎回異なる漢字に変換するため、個別エイリアスでは対応しきれない。
-        // 各漢字の「同音異字」を正規表現でグループ化し、どの組み合わせでもマッチさせる。
-        const memberKeywords = [
-            // --- 上部構造 ---
-            {
-                name: "主桁", pattern: /[主首重朱守手殊珠須修収衆酒取種趣][桁田形方]/,
-                aliases: ["しゅげた", "シュゲタ"]
-            },
-            {
-                name: "横桁", pattern: /[横よこ][桁田形方]/,
-                aliases: ["よこげた", "ヨコゲタ"]
-            },
-            {
-                name: "縦桁", pattern: /[縦たて立建][桁田形方]/,
-                aliases: ["たてげた", "タテゲタ"]
-            },
-            {
-                name: "床版", pattern: /[床小商少升召初所書署諸処評表票標俵氷漂兵秒描][版判番盤板半班般犯帆搬畔斑販藩]/,
-                aliases: ["しょうばん", "ショウバン", "しょうはん", "ひょうばん"]
-            },
-            {
-                name: "対傾構", pattern: /[対隊大体代台第帯退太鯛堆怠待泰滞戴替][傾景径慶経恵形型系][構講溝向港好公功工口高効稿巧光孝鬩紘]/,
-                aliases: ["たいけいこう", "タイケイコウ"]
-            },
-            {
-                name: "横構", pattern: /[横よこ][構講溝向港好公功工口]/,
-                aliases: ["よここう", "ヨココウ"]
-            },
-            {
-                name: "ゲルバー部", pattern: /ゲルバ/,
-                aliases: ["げるばー", "げるば"]
-            },
-            // --- 橋面 ---
-            {
-                name: "高欄", pattern: /[高甲香交公功興好幸光孝洪鴻広厚更考講鋼荒行合校港候口後黄効紅稿号恒侯郊皇硬項綱耕航鉱慌肯控酵溝絞梗喉][欄蘭覧乱爛嵐濫卵藍]/,
-                aliases: ["こうらん", "コウラン"]
-            },
-            {
-                name: "防護柵", pattern: /[防棒暴房傍坊望膨妨冒紡帽忙乏亡剖貿][護語呉誤碁娯午後伍][柵索策作削昨咲]/,
-                aliases: ["ぼうごさく", "ボウゴサク"]
-            },
-            {
-                name: "地覆", pattern: /[地じ治持][覆伏福復腹服副複幅]/,
-                aliases: ["じふく", "ジフク"]
-            },
-            {
-                name: "伸縮装置", pattern: /[伸紳申信芯辛進新森深真神親寝慎振侵浸][縮宿粛淑塾熟]/,
-                aliases: ["しんしゅくそうち", "伸縮"]
-            },
-            {
-                name: "舗装", pattern: /[舗補歩保][装荘送層蔵倉双掃走草創葬槽遭相壮総想像増憎操燥藻騒早曾措疎祖組訴阻粗]/,
-                aliases: ["ほそう", "ホソウ"]
-            },
-            {
-                name: "中央分離帯", pattern: /中央分離/,
-                aliases: ["ちゅうおうぶんりたい"]
-            },
-            {
-                name: "縁石", pattern: /[縁円園遠延演塩鉛宴沿炎艶援煙][石席関積赤昔跡隻]/,
-                aliases: ["えんせき", "ふちいし"]
-            },
-            // --- 支承部 ---
-            {
-                name: "支承本体", pattern: /[支し姿思糸始指子紫旨至][承証称象昇消商照焼章勝紹招詳彰晶障衝焦松省匠将]/,
-                aliases: ["ししょうほんたい", "支承", "ししょう"]
-            },
-            {
-                name: "沓座モルタル", pattern: /[沓くつ靴屈窟掘][座ざ挫]/,
-                aliases: ["くつざもるたる", "くつざ", "沓座"]
-            },
-            {
-                name: "台座コンクリート", pattern: /台座/,
-                aliases: ["だいざこんくりーと", "台座"]
-            },
-            {
-                name: "落橋防止システム", pattern: /落橋防止|らっきょう防止/,
-                aliases: ["らっきょうぼうし", "落橋防止"]
-            },
-            // --- 下部工 ---
-            {
-                name: "柱部", pattern: /[柱注駐中宙鋳][部ぶ武歩付負附布夫婦富扶符普訃浮腐敷膚賦赴不]/,
-                aliases: ["ちゅうぶ"]
-            },
-            {
-                name: "壁部", pattern: /[壁へき碧][部ぶ]/,
-                aliases: ["へきぶ"]
-            },
-            {
-                name: "隅角部", pattern: /[隅すみ澄済][角各格客確核覚革隔殻較閣郭脚却拡獲画骸][部ぶ]/,
-                aliases: ["すみかくぶ", "ぐうかくぶ"]
-            },
-            // --- ボックスカルバート ---
-            {
-                name: "頂版", pattern: /[頂兆町超長腸張帳朝潮庁跳彫釣鳥徴懲眺聴][版判番盤板半班般犯帆搬畔斑販藩]/,
-                aliases: ["ちょうばん", "ちょうはん"]
-            },
-            {
-                name: "底版", pattern: /[底低手抵定提帝締庭程呈逓停訂貞偵廷堤艇泥的適邸笛][版判番盤板半班般犯帆搬畔斑販藩]/,
-                aliases: ["ていばん", "ていはん"]
-            },
-            // --- その他 ---
-            {
-                name: "排水管", pattern: /排水[管官缶棺冠勧]/,
-                aliases: ["はいすいかん"]
-            },
-            {
-                name: "排水ます", pattern: /排水[ます枡桝升]/,
-                aliases: ["はいすいます"]
-            },
-            {
-                name: "排水施設", pattern: /排水施/,
-                aliases: ["はいすいしせつ", "排水"]
-            },
-            {
-                name: "アーチリブ", pattern: /アーチリブ/,
-                aliases: ["あーちりぶ"]
-            },
-            {
-                name: "外ケーブル", pattern: /外ケーブル|外けーぶる/,
-                aliases: ["そとけーぶる", "がいけーぶる"]
-            },
-            {
-                name: "添架物", pattern: /[添天展店転点典伝殿田電][架加下夏化火花家科歌課菓過暇靴嫁華禍稼蚊][物もの者]/,
-                aliases: ["てんかぶつ", "テンカブツ"]
-            },
-            {
-                name: "PC定着部", pattern: /PC定着|ピーシー定着/,
-                aliases: ["PC定着"]
-            },
-            {
-                name: "点検施設", pattern: /点検施/,
-                aliases: ["てんけんしせつ"]
-            },
-            {
-                name: "遮音施設", pattern: /遮音/,
-                aliases: ["しゃおんしせつ", "遮音壁"]
-            }
-        ];
-        const unitPatterns = [
-            { pattern: /(\d+\.?\d*)\s*(ミリ|mm)/gi, unit: "mm" },
-            { pattern: /(\d+\.?\d*)\s*(センチ|cm)/gi, unit: "cm" },
-            { pattern: /(\d+\.?\d*)\s*(メートル|m(?!m))/gi, unit: "m" }
-        ];
-
-        // ==========================================
-        // 初期化
+        // 初期化処理
         // ==========================================
         window.onload = () => {
-            loadData();
-            document.getElementById('gasUrl').value = config.gasUrl;
+            // もしハードコードURLが設定されていて、LocalStorageと異なるなら更新
+            if (HARDCODED_GAS_URL && HARDCODED_GAS_URL !== "ここにGASのURLを貼り付けます" && config.gasUrl !== HARDCODED_GAS_URL) {
+                config.gasUrl = HARDCODED_GAS_URL;
+                localStorage.setItem('gasUrl', config.gasUrl);
+            }
 
-            // 保存されたシート選択状態を復元
-            if (config.currentPart) {
-                document.getElementById('partSelect').value = config.currentPart;
-            }
-            if (config.currentSpan) {
-                document.getElementById('spanInput').value = config.currentSpan;
-            }
-            // ラベルの更新（復元された値に基づく）
+            loadData();
+
+            document.getElementById('partSelect').value = config.currentPart;
+            document.getElementById('spanInput').value = config.currentSpan;
             updateSheetLabel();
 
             renderBridgeSelect();
             updateUI();
 
-            // URL設定済みならリスト取得を試みる
-            if (config.gasUrl && config.bridges.length === 0) {
+            if (config.gasUrl && config.gasUrl !== "ここにGASのURLを貼り付けます") {
                 fetchBridgeList();
+            } else {
+                alert("HTML内の HARDCODED_GAS_URL にスクリプトURLを設定してください。");
             }
         };
 
-        function toggleSettings() {
-            document.getElementById('settingsBody').classList.toggle('open');
+        // ==========================================
+        // UI操作 / 状態管理
+        // ==========================================
+        function getCurrentSheetName() {
+            const part = document.getElementById('partSelect').value;
+            const span = document.getElementById('spanInput').value;
+            return span ? part + span : part;
         }
 
-        function saveConfig() {
-            const url = document.getElementById('gasUrl').value.trim();
-            if (url !== config.gasUrl) {
-                config.gasUrl = url;
-                localStorage.setItem('gasUrl', url);
-                fetchBridgeList();
+        document.getElementById('partSelect').addEventListener('change', (e) => {
+            config.currentPart = e.target.value; localStorage.setItem('currentPart', config.currentPart); updateSheetLabel();
+        });
+        document.getElementById('spanInput').addEventListener('input', (e) => {
+            config.currentSpan = e.target.value; localStorage.setItem('currentSpan', config.currentSpan); updateSheetLabel();
+        });
+
+        function updateSheetLabel() {
+            document.getElementById('currentSheetName').textContent = getCurrentSheetName();
+        }
+
+        function getBridgeInfo(id) {
+            return config.bridges.find(x => x.id === id);
+        }
+
+        document.getElementById('bridgeSelect').addEventListener('change', (e) => {
+            config.currentBridgeId = e.target.value;
+            localStorage.setItem('currentBridgeId', config.currentBridgeId);
+            updateSheetLinkBtn();
+        });
+
+        function updateSheetLinkBtn() {
+            const btn = document.getElementById('openSheetBtn');
+            const info = getBridgeInfo(config.currentBridgeId);
+            if (info && info.url) {
+                btn.style.display = 'inline-block';
+                btn.onclick = () => window.open(info.url, '_blank');
+            } else {
+                btn.style.display = 'none';
             }
         }
 
-        // ==========================================
-        // データ管理 (LocalStorage / Offline)
-        // ==========================================
         function loadData() {
             const json = localStorage.getItem('inspectionData');
-            if (json) {
-                appState.data = JSON.parse(json);
-            }
+            if (json) appState.data = JSON.parse(json);
         }
 
         function saveData() {
@@ -900,54 +391,84 @@
             updateUI();
         }
 
-        function addRecord(parsed) {
-            const sheetName = getCurrentSheetName();
+        // ==========================================
+        // 音声認識処理 (生テキスト取得のみ)
+        // ==========================================
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const micBtn = document.getElementById('micBtn');
+        const recText = document.getElementById('recognizedText');
+        const addBtn = document.getElementById('addBtn');
+
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+
+            micBtn.addEventListener('click', () => {
+                recognition.start();
+                micBtn.classList.add('listening');
+                micBtn.textContent = '聞いています...';
+                recText.textContent = '...';
+                addBtn.style.display = 'none';
+                appState.currentRawText = "";
+            });
+
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                appState.currentRawText = text;
+                recText.textContent = text;
+                micBtn.classList.remove('listening');
+                micBtn.textContent = '🎙️ 音声入力';
+                addBtn.style.display = 'block';
+            };
+
+            recognition.onerror = () => {
+                micBtn.classList.remove('listening');
+                micBtn.textContent = '🎙️ 音声入力';
+                recText.textContent = 'エラーが発生しました。もう一度お試しください。';
+            };
+        } else {
+            micBtn.disabled = true;
+            micBtn.textContent = 'このブラウザは音声入力非対応です';
+        }
+
+        // ==========================================
+        // データ記録・送信処理
+        // ==========================================
+        addBtn.addEventListener('click', () => {
+            if (!appState.currentRawText) return;
+
+            const bInfo = getBridgeInfo(config.currentBridgeId);
+            if (!bInfo) {
+                alert("入力先の橋を選択してください。"); // 安全装置
+                return;
+            }
+
             const record = {
                 id: Date.now(),
                 timestamp: new Date().toLocaleString('ja-JP'),
                 bridgeId: config.currentBridgeId,
-                bridgeName: getBridgeName(config.currentBridgeId),
-                sheetName: sheetName,
-                member: parsed.member || '',
-                elementNumber: parsed.elementNumber || '', // 追加
-                damageId: parsed.damageId || '',
-                damageName: parsed.damageName || '',
-                photoNo: parsed.photoNo || '',
-                prevRecord: parsed.prevRecord || '',
-                remarks: parsed.remarks || '',
-                dimensions: parsed.dimensions.join(' '),
-                crackWidth: parsed.crackWidth || '', // 追加: ひび幅
+                bridgeName: bInfo.name,
+                sheetName: getCurrentSheetName(),
+                rawText: appState.currentRawText, // 生テキストのみ持つ
                 synced: false
             };
 
-            appState.data.unshift(record);
+            appState.data.unshift(record); // 最新を上に追加
             saveData();
 
-            if (navigator.onLine && config.gasUrl && document.getElementById('bridgeSelect').value) {
+            addBtn.style.display = 'none';
+            recText.innerHTML = '<span style="color:var(--success-color)">✓ 送信準備完了</span>';
+            setTimeout(() => { recText.textContent = '待機中...'; }, 1500);
+
+            if (navigator.onLine && config.gasUrl) {
                 sendToCloud(record);
             }
-        }
+        });
 
-        function deleteRecord(id) {
-            if (!confirm("削除しますか？")) return;
-            appState.data = appState.data.filter(d => d.id !== id);
-            saveData();
-        }
-
-        function clearAllData() {
-            if (!confirm("全てのデータを削除しますか？")) return;
-            appState.data = [];
-            saveData();
-        }
-
-        // ==========================================
-        // クラウド連携 (GAS)
-        // ==========================================
         async function fetchBridgeList() {
-            if (!config.gasUrl) return;
-            const status = document.getElementById('connectionStatus');
-            status.textContent = "通信中...";
-            status.style.color = "blue";
+            if (!config.gasUrl || config.gasUrl === "ここにGASのURLを貼り付けます") return;
+            const select = document.getElementById('bridgeSelect');
+            select.options[0].textContent = "通信中...";
 
             try {
                 const res = await fetch(config.gasUrl + '?action=list');
@@ -957,15 +478,12 @@
                     config.bridges = json.bridges;
                     localStorage.setItem('bridges', JSON.stringify(config.bridges));
                     renderBridgeSelect();
-                    status.textContent = "接続OK (" + json.folderName + ")";
-                    status.style.color = "var(--success-color)";
                 } else {
-                    throw new Error(json.message);
+                    select.options[0].textContent = "GASエラー";
                 }
             } catch (e) {
                 console.error(e);
-                status.textContent = "接続エラー (オフライン?)";
-                status.style.color = "var(--error-color)";
+                select.options[0].textContent = "オフライン";
             }
         }
 
@@ -980,603 +498,99 @@
             });
             if (config.currentBridgeId) {
                 select.value = config.currentBridgeId;
+                updateSheetLinkBtn();
             }
         }
 
-        document.getElementById('bridgeSelect').addEventListener('change', (e) => {
-            config.currentBridgeId = e.target.value;
-            localStorage.setItem('currentBridgeId', config.currentBridgeId);
-        });
-
         async function sendToCloud(record) {
-            if (!config.gasUrl) return { success: false, msg: "GAS URL未設定" };
-
-            // 橋IDがない場合、現在の選択を適用してみる (フォールバック)
-            if (!record.bridgeId) {
-                if (config.currentBridgeId) {
-                    record.bridgeId = config.currentBridgeId;
-                    record.bridgeName = getBridgeName(config.currentBridgeId);
-                    saveData(); // 補完した情報を保存
-                } else {
-                    console.error("送信スキップ: 橋が選択されていません");
-                    return { success: false, msg: "橋未選択" };
-                }
-            }
-
-            // 送信データ構築
-            const payload = {
-                fileId: record.bridgeId,
-                sheetName: record.sheetName,
-                member: record.member,
-                elementNumber: record.elementNumber, // 追加
-                damageName: record.damageName,
-                damageId: record.damageId,
-                photoNo: record.photoNo,
-                prevRecord: record.prevRecord,
-                remarks: record.remarks,
-                dimensions: record.dimensions,
-                crackWidth: record.crackWidth,
-                timestamp: record.timestamp
-            };
-
             try {
+                const payload = {
+                    fileId: record.bridgeId,
+                    sheetName: record.sheetName,
+                    rawText: record.rawText,
+                    timestamp: record.timestamp
+                };
+
                 const res = await fetch(config.gasUrl, {
                     method: 'POST',
-                    headers: { "Content-Type": "text/plain" }, // CORS Preflight回避＆GAS互換
+                    headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify(payload)
                 });
-                // GASは成功なら200番台、失敗ならエラーを返すが、text/plainモードだとopaque responseの場合もある
-                // しかし通常はcors fetch可能
-                const text = await res.text(); // レスポンス確認用
 
-                // 成功判定 (簡易)
-                // JSONが返る前提
-                try {
-                    const json = JSON.parse(text);
-                    if (json.status === 'error' || json.success === false) {
-                        return { success: false, msg: "GASエラー: " + (json.error || json.message) };
-                    }
-                } catch (e) {
-                    // JSONパース失敗でも、とりあえず送信できたとみなすか？
-                    // いや、エラーがHTMLで返っている可能性がある
-                    console.warn("RESP Parse Error", text);
+                // Gemini APIの呼び出し時間によりレスポンスが遅延する可能性がある
+                const json = await res.json();
+
+                if (json.success) {
+                    record.synced = true;
+                    // GASから採番されたNoが返ってくれば保存しておいても良い
+                    if (json.assignedNo) record.assignedNo = json.assignedNo;
+                    saveData();
+                    return { success: true };
+                } else {
+                    throw new Error(json.error || "Unknown Error");
                 }
-
-                record.synced = true;
-                saveData();
-                return { success: true, msg: "OK" };
             } catch (e) {
                 console.error("送信失敗", e);
-                return { success: false, msg: "通信エラー: " + e.message };
+                return { success: false, msg: e.message };
             }
         }
 
         async function syncAllData() {
-            const btn = document.querySelector('.sync-btn');
-            const originalText = btn.textContent;
-            btn.textContent = "送信中...";
-            btn.disabled = true;
-
             const unsent = appState.data.filter(d => !d.synced);
-            let successCount = 0;
-            let errors = [];
-
             for (const record of unsent) {
-                const res = await sendToCloud(record);
-                if (res.success) {
-                    successCount++;
-                } else {
-                    errors.push(res.msg);
-                }
-                // GASのレート制限回避のため少しウェイトを入れる
-                await new Promise(r => setTimeout(r, 500));
+                await sendToCloud(record);
+                await new Promise(r => setTimeout(r, 1000)); // Gemini API制限回避のため長めに
             }
-
-            btn.textContent = originalText;
-            btn.disabled = false;
-
-            let msg = `${successCount}件 送信しました`;
-            if (errors.length > 0) {
-                // エラー内容をユニークにして表示
-                const uniqueErrors = [...new Set(errors)];
-                msg += `\n(${errors.length}件 失敗)\n理由: ${uniqueErrors.join(', ')}`;
-            }
-            alert(msg);
             updateUI();
         }
 
         // ==========================================
-        // ユーザー辞書・クイック入力UI
+        // リスト表示と編集操作
         // ==========================================
-        function insertQuickTag(word) {
-            // 手動入力欄の末尾（またはカーソル位置）に挿入する簡易実装
-            const manualInput = document.getElementById('manualInput');
-            manualInput.value = (manualInput.value + " " + word).trim();
-            // 挿入後すぐに解析を実行する場合は以下のコメントアウトを外す
-            // document.getElementById('manualParseBtn').click();
-        }
-
-        function openDictModal() {
-            document.getElementById('dictModal').style.display = 'flex';
-            renderUserDictList();
-        }
-
-        function closeDictModal() {
-            document.getElementById('dictModal').style.display = 'none';
-            document.getElementById('dictPatternInput').value = '';
-            document.getElementById('dictCorrectInput').value = '';
-        }
-
-        function saveUserDict() {
-            const pattern = document.getElementById('dictPatternInput').value.trim();
-            const correct = document.getElementById('dictCorrectInput').value.trim();
-
-            if (!pattern || !correct) {
-                alert('「誤認識された言葉」と「正しい用語」の両方を入力してください。');
-                return;
-            }
-
-            let userDict = [];
-            const json = localStorage.getItem('userErrorDictionary');
-            if (json) {
-                try { userDict = JSON.parse(json); } catch (e) { }
-            }
-
-            // 既に同じ誤認識パターンがあれば削除して上書き
-            userDict = userDict.filter(item => item.pattern !== pattern);
-            userDict.push({ pattern, correct });
-
-            localStorage.setItem('userErrorDictionary', JSON.stringify(userDict));
-
-            alert(`「${pattern}」を「${correct}」に補正するよう登録しました！`);
-
-            document.getElementById('dictPatternInput').value = '';
-            renderUserDictList();
-        }
-
-        function renderUserDictList() {
-            const listDiv = document.getElementById('userDictList');
-            let userDict = [];
-            const json = localStorage.getItem('userErrorDictionary');
-            if (json) {
-                try { userDict = JSON.parse(json); } catch (e) { }
-            }
-
-            if (userDict.length === 0) {
-                listDiv.innerHTML = '<span style="color:#999">登録はありません</span>';
-                return;
-            }
-
-            listDiv.innerHTML = userDict.map(item =>
-                `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:2px 0;">
-                    <span><del style="color:#999">${item.pattern}</del> ➡️ <b>${item.correct}</b></span>
-                    <button style="border:none; background:none; color:red; cursor:pointer;" onclick="deleteUserDictItem('${item.pattern}')">×</button>
-                </div>`
-            ).join('');
-        }
-
-        function deleteUserDictItem(pattern) {
-            let userDict = [];
-            const json = localStorage.getItem('userErrorDictionary');
-            if (json) {
-                try { userDict = JSON.parse(json); } catch (e) { }
-            }
-            userDict = userDict.filter(item => item.pattern !== pattern);
-            localStorage.setItem('userErrorDictionary', JSON.stringify(userDict));
-            renderUserDictList();
-        }
-
-        function clearUserDict() {
-            if (!confirm('登録した独自の辞書を全て削除します。よろしいですか？')) return;
-            localStorage.removeItem('userErrorDictionary');
-            renderUserDictList();
-        }
-
-
-        // ==========================================
-        // 音声認識 & パース
-        // ==========================================
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const micBtn = document.getElementById('micBtn');
-        const recText = document.getElementById('recognizedText');
-        const parsedDiv = document.getElementById('parsedResult');
-        const addBtn = document.getElementById('addBtn');
-
-        // 手動入力
-        const manualInput = document.getElementById('manualInput');
-        const manualParseBtn = document.getElementById('manualParseBtn');
-
-        manualParseBtn.addEventListener('click', () => {
-            const text = manualInput.value;
-            if (!text) return;
-
-            recText.textContent = text; // 表示を手動入力内容に
-            processInput(text);
-        });
-
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'ja-JP';
-
-            micBtn.addEventListener('click', () => {
-                recognition.start();
-                micBtn.classList.add('listening');
-                micBtn.textContent = '聞いています...';
-                recText.textContent = '...';
-                parsedDiv.innerHTML = '';
-                addBtn.style.display = 'none';
-            });
-
-            recognition.onresult = (e) => {
-                const text = e.results[0][0].transcript;
-                recText.textContent = text;
-                processInput(text); // 共通化
-
-                micBtn.classList.remove('listening');
-                micBtn.textContent = '🎙️ 音声入力';
-            };
-
-            recognition.onerror = () => {
-                micBtn.classList.remove('listening');
-                micBtn.textContent = '🎙️ 音声入力';
-                recText.textContent = 'エラーが発生しました';
-            };
-        } else {
-            micBtn.disabled = true;
-            micBtn.textContent = 'このブラウザは音声入力非対応です';
-        }
-
-        function processInput(text) {
-            const result = parseInput(text);
-            displayParsed(result);
-            appState.currentParsed = result;
-
-            if (result.member || result.damageName) {
-                addBtn.style.display = 'block';
-            }
-        }
-
-        function parseInput(text) {
-            // 空白除去ではなく正規化 (連続する空白を1つに)
-            // これにより "0.1 0.5" が "0.10.5" になるのを防ぐ
-            let rawText = text.replace(/\s+/g, " ").trim();
-            // "かける" -> "*"
-            rawText = rawText.replace(/かける|×/g, "*");
-
-            // ==========================================
-            // [NEW] 1. 誤変換の強制置換処理 (JS辞書 + ユーザー辞書)
-            // ==========================================
-            let mergedDictionary = [];
-            // (1) システム組み込み辞書 (koeyacho_dictionary.js で定義済みの errorDictionary)
-            if (typeof errorDictionary !== 'undefined') {
-                mergedDictionary = [...errorDictionary];
-            }
-
-            // (2) ユーザーのローカル辞書 (localStorage)
-            const userDictJson = localStorage.getItem('userErrorDictionary');
-            if (userDictJson) {
-                try {
-                    const userDict = JSON.parse(userDictJson);
-                    // userDict = [{ correct: "正", pattern: "誤" }, ...]
-                    userDict.forEach(item => {
-                        // 既存のまとまりの形に合わせて追加
-                        mergedDictionary.push({
-                            correct: item.correct,
-                            patterns: [item.pattern]
-                        });
-                    });
-                } catch (e) {
-                    console.error("User dictionary parse fail", e);
-                }
-            }
-
-            // (3) 置換実行
-            // ※より長いパターン、または完全一致を安全に行うためにループする
-            for (const dictItem of mergedDictionary) {
-                if (!dictItem.correct || !dictItem.patterns) continue;
-                for (const pattern of dictItem.patterns) {
-                    if (!pattern) continue;
-                    // text中のpatternを全てcorrectに置換する。
-                    // 例: "商板" -> "床版", "夕刊" -> "遊間"
-                    // (正規表現でグローバル置換する場合は、特殊文字のエスケープが必要ですが、ここでは単純文字列として置換します。複数回出現も考慮）
-                    const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-                    rawText = rawText.replace(regex, dictItem.correct);
-                }
-            }
-
-            let res = {
-                member: "",
-                elementNumber: "",
-                damageId: "",
-                damageName: "",
-                dimensions: [],
-                crackWidth: "",
-                photoNo: "",
-                prevRecord: "",
-                remarks: ""
-            };
-
-            // 2. 部材の抽出（同音漢字パターン + エイリアス対応）
-            for (const mk of memberKeywords) {
-                // (a) 正式名称で完全一致検索
-                const nameRegex = new RegExp(mk.name + "\\s*([A-Za-z0-9\\-]+)?");
-                const nameMatch = rawText.match(nameRegex);
-                if (nameMatch) {
-                    res.member = mk.name;
-                    if (nameMatch[1]) res.elementNumber = nameMatch[1];
-                    break;
-                }
-
-                // (b) 同音漢字パターンで検索（最も広くヒットする）
-                if (mk.pattern) {
-                    const patternMatch = rawText.match(mk.pattern);
-                    if (patternMatch) {
-                        res.member = mk.name; // 正式名称に変換
-                        // マッチ箇所の後ろに要素番号があるか確認
-                        const afterIdx = patternMatch.index + patternMatch[0].length;
-                        const afterText = rawText.substring(afterIdx);
-                        const elemMatch = afterText.match(/^\s*([A-Za-z0-9\-]+)/);
-                        if (elemMatch) res.elementNumber = elemMatch[1];
-                        break;
-                    }
-                }
-
-                // (c) ひらがな/カタカナエイリアスで検索
-                let aliasFound = false;
-                for (const alias of mk.aliases) {
-                    if (rawText.includes(alias)) {
-                        res.member = mk.name;
-                        aliasFound = true;
-                        const aliasIdx = rawText.indexOf(alias);
-                        const afterText = rawText.substring(aliasIdx + alias.length);
-                        const elemMatch = afterText.match(/^\s*([A-Za-z0-9\-]+)/);
-                        if (elemMatch) res.elementNumber = elemMatch[1];
-                        break;
-                    }
-                }
-                if (aliasFound) break;
-            }
-
-            // 2. 変状の抽出
-            // 番号指定 ("1番", "6号" など)
-            const numMatch = rawText.match(/(\d+)\s*(番|号)/);
-            if (numMatch && damageTypes[numMatch[1]]) {
-                res.damageId = numMatch[1];
-                res.damageName = damageTypes[numMatch[1]];
-            }
-
-            // 名前指定
-            if (!res.damageName) {
-                for (const d of damageKeywords) {
-                    if (rawText.includes(d.name) || d.aliases.some(a => rawText.includes(a))) {
-                        res.damageId = d.id;
-                        res.damageName = d.name;
-                        break;
-                    }
-                }
-            }
-
-            // 3. 写真番号 ("写真10", "写真番号 20")
-            const photoMatch = rawText.match(/(写真|写真番号)\s*(\d{1,4})/);
-            if (photoMatch) {
-                res.photoNo = photoMatch[2];
-            }
-
-            // 4. 前回調書 ("前回100", "調書 100")
-            const prevMatch = rawText.match(/(前回|調書|前回調書)\s*(\d{3})/);
-            if (prevMatch) {
-                res.prevRecord = prevMatch[2];
-            }
-
-            // 5. 備考 ("備考〜")
-            const remarkMatch = rawText.match(/備考\s*(.+)/);
-            if (remarkMatch) {
-                res.remarks = remarkMatch[1];
-            }
-
-            // 6. ひび幅 (crackWidth) の抽出
-            // "幅 0.2ミリ" -> "幅" + 空白? + 数値 + 空白? + 単位?
-            // または、変状が「ひび割れ」系の場合の特例処理
-
-            // 明示的な「幅」指定がある場合
-            // 音声認識の読み上げバリエーション: 幅/はば/ハバ/W/ダブリュー
-            const widthMatch = rawText.match(/(幅|はば|ハバ|W|ダブリュー)\s*(\d+(\.\d+)?)\s*(ミリ|mm|)/i);
-            if (widthMatch) {
-                let val = widthMatch[2];
-                let unit = widthMatch[4] || "";
-                if (unit === "ミリ") unit = "mm";
-                res.crackWidth = val + unit;
-                rawText = rawText.replace(widthMatch[0], ""); // 抽出済み部分を削除
-            }
-
-            // 6.5. 長さ (dimensions) の明示的抽出 — 幅の直後に処理
-            // 「長さ」「L」のプレフィックス付きの値を先に抽出して、後続処理での誤爆を防ぐ
-            // 音声認識の読み上げバリエーション: L/エル/える/Ｌ/長さ/ながさ
-            const lengthMatch = rawText.match(/(長さ|ながさ|エル|える|Ｌ|L)\s*(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)?/i);
-            if (lengthMatch) {
-                let val = parseFloat(lengthMatch[2]);
-                let unit = lengthMatch[4] || "";
-
-                // 明示的な単位がある場合はそれに従う
-                if (unit === "ミリ" || unit === "mm") {
-                    val = val / 1000;
-                } else if (unit === "センチ" || unit === "cm") {
-                    val = val / 100;
-                } else if (unit === "メートル" || unit === "m") {
-                    // そのまま
-                } else {
-                    // 単位なしの場合: 換算ロジック (ヒューリスティック)
-                    // 10以上ならmmとみなしてmに変換する (現場慣習)
-                    // 0.5 -> 0.5m, 500 -> 0.5m, 5 -> 5m
-                    if (val >= 10) {
-                        val = val / 1000;
-                    }
-                }
-
-                res.dimensions.push(Math.round(val * 10000) / 10000);
-                rawText = rawText.replace(lengthMatch[0], ""); // 抽出済み部分を削除
-            }
-
-            // 「ひび割れ」系で明示的な幅指定がなく、小さな数値がある場合の推論
-            if ((res.damageName === 'ひびわれ' || res.damageName === '床版ひびわれ') && !res.crackWidth) {
-                // 文脈依存: "0.2" のような単独の小さな数値(例えば1.0未満)はひび幅とみなす
-                // ただし既に長さとして抽出済みの値は rawText から除去済み
-
-                const smallNumMatch = rawText.match(/(?:^|\s)(\d+(\.\d+)?)\s*(ミリ|mm)?(?=\s|$|[^0-9\.])/);
-                if (smallNumMatch) {
-                    const v = parseFloat(smallNumMatch[1]);
-                    // 1.0未満、かつ単位がmでないならひび幅とみなす
-                    if (v < 1.0 || smallNumMatch[3]) {
-                        let unit = smallNumMatch[3] || "";
-                        if (unit === "ミリ") unit = "mm";
-                        res.crackWidth = smallNumMatch[1] + unit;
-                        rawText = rawText.replace(smallNumMatch[0], "");
-                    }
-                }
-            }
-
-            // 7. 数量 (dimensions) の抽出 — 残りの数値を処理
-
-            // まず計算式パターン "2.0 * 3.0" (空白許容)
-            const calcMatch = rawText.match(/(\d+(\.\d+)?)\s*(\*|×|かける)\s*(\d+(\.\d+)?)/);
-            if (calcMatch) {
-                let v1 = parseFloat(calcMatch[1]);
-                let v2 = parseFloat(calcMatch[4]);
-
-                // 10以上ならmmとみなしてmに変換
-                if (v1 >= 10) v1 = v1 / 1000;
-                if (v2 >= 10) v2 = v2 / 1000;
-
-                const s1 = Math.round(v1 * 10000) / 10000;
-                const s2 = Math.round(v2 * 10000) / 10000;
-
-                res.dimensions.push(`${s1}*${s2}`);
-
-                rawText = rawText.replace(calcMatch[0], "");
-            }
-
-            // 単位付きの検出 (mm, cm, m)
-            const unitRegex = /(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)/g;
-            let m;
-            while ((m = unitRegex.exec(rawText)) !== null) {
-                let val = parseFloat(m[1]);
-                let unit = m[3];
-
-                if (unit === "ミリ" || unit === "mm") {
-                    val = val / 1000;
-                } else if (unit === "センチ" || unit === "cm") {
-                    val = val / 100;
-                }
-                // mはそのまま
-
-                res.dimensions.push(Math.round(val * 10000) / 10000);
-            }
-
-            // 既にユニット付きで処理された箇所を消す（簡易版）
-            rawText = rawText.replace(/(\d+(\.\d+)?)\s*(ミリ|mm|センチ|cm|メートル|m)/g, "");
-
-            return res;
-        }
-
-        function displayParsed(res) {
-            let html = [];
-            if (res.member) {
-                html.push(`<span class="tag tag-member">${res.member}</span>`);
-                if (res.elementNumber) {
-                    html.push(`<span class="tag" style="background:#444">#${res.elementNumber}</span>`);
-                }
-            }
-            if (res.damageName) html.push(`<span class="tag tag-damage">${res.damageId}.${res.damageName}</span>`);
-            // ひび幅
-            if (res.crackWidth) html.push(`<span class="tag" style="background:#d35400">W:${res.crackWidth}</span>`);
-            // 数量
-            if (res.dimensions.length > 0) html.push(`<span class="tag tag-dim">L:${res.dimensions.join(' ')}m</span>`);
-
-            if (res.photoNo) html.push(`<span class="tag" style="background:#555">📷${res.photoNo}</span>`);
-            if (res.prevRecord) html.push(`<span class="tag" style="background:#777">⏮️${res.prevRecord}</span>`);
-            if (res.remarks) html.push(`<span class="tag" style="background:#999">📝${res.remarks}</span>`);
-
-            parsedDiv.innerHTML = html.join(' ');
-        }
-
-        addBtn.addEventListener('click', () => {
-            if (appState.currentParsed) {
-                addRecord(appState.currentParsed);
-                addBtn.style.display = 'none';
-                parsedDiv.innerHTML = '<span style="color:var(--success-color)">✓ 保存しました</span>';
-                setTimeout(() => {
-                    recText.textContent = '待機中...';
-                    parsedDiv.innerHTML = '';
-                }, 1500);
-            }
-        });
-
-        // ==========================================
-        // UI更新系
-        // ==========================================
-        function getCurrentSheetName() {
-            const part = document.getElementById('partSelect').value;
-            const span = document.getElementById('spanInput').value;
-            return span ? part + span : part;
-        }
-        document.getElementById('partSelect').addEventListener('change', (e) => {
-            config.currentPart = e.target.value;
-            localStorage.setItem('currentPart', config.currentPart);
-            updateSheetLabel();
-        });
-        document.getElementById('spanInput').addEventListener('input', (e) => {
-            config.currentSpan = e.target.value;
-            localStorage.setItem('currentSpan', config.currentSpan);
-            updateSheetLabel();
-        });
-
-        function updateSheetLabel() {
-            document.getElementById('currentSheetName').textContent = getCurrentSheetName();
-        }
-
-        function getBridgeName(id) {
-            const b = config.bridges.find(x => x.id === id);
-            return b ? b.name : '不明な橋';
-        }
-
         function updateUI() {
             const tbody = document.getElementById('dataBody');
             const empty = document.getElementById('emptyState');
             const syncAlert = document.getElementById('syncAlert');
-            const unsentCount = document.getElementById('unsentCount');
-            const countSpan = document.getElementById('dataCount');
 
             tbody.innerHTML = '';
 
             if (appState.data.length === 0) {
                 empty.style.display = 'block';
-                tbody.style.display = 'none';
             } else {
                 empty.style.display = 'none';
-                tbody.style.display = 'table-row-group';
 
-                appState.data.forEach(d => {
+                // 表示用件数 (配列は逆順(新しい順)になっているが、Noとしては古いものが若い番号)
+                // 採番用に、一番古いレコードをNo.1とみなして配列長で逆算表示する
+                const total = appState.data.length;
+
+                appState.data.forEach((d, idx) => {
                     const tr = document.createElement('tr');
-                    const statusIcon = d.synced ? '<span class="status-icon status-ok">☁️済</span>' : '<span class="status-icon status-wait">⚠️未</span>';
+                    const statusIcon = d.synced ? '<span class="status-ok">☁️送信済</span>' : '<span class="status-wait">⚠️未送信</span>';
+                    // 記録順の仮想No
+                    const displayNo = total - idx;
 
-                    // 表示内容を少しリッチに
-                    let details = [];
-                    if (d.elementNumber) details.push(`#${d.elementNumber}`); // 表示追加
-                    if (d.photoNo) details.push(`📷${d.photoNo}`);
-                    if (d.prevRecord) details.push(`⏮️${d.prevRecord}`);
-                    if (d.dimensions) details.push(`📏${d.dimensions}`);
-                    if (d.remarks) details.push(`📝${d.remarks}`);
-
-                    const content = `
-                <div style="font-weight:bold">${d.member} <span style="font-weight:normal; font-size:0.9em">${d.damageName}</span></div>
-                <div style="font-size:0.85em; color:#666;">${details.join(' ')} <span style="margin-left:5px; background:#eee; padding:2px;">${d.sheetName}</span></div>
-            `;
+                    // シート名表示（省略されがちなので）
+                    const tgtStr = `<span style="font-size:0.8em; color:#888;">[${d.sheetName}]</span>`;
 
                     tr.innerHTML = `
-                <td>${statusIcon}</td>
-                <td>${content}</td>
-                <td style="text-align:right"><button class="btn-danger" onclick="deleteRecord(${d.id})">×</button></td>
-            `;
+                        <td style="width:25px; vertical-align:top; color:#999; font-size:0.8em;">${displayNo}</td>
+                        <td style="vertical-align:top;">
+                            <div id="text-display-${d.id}" class="raw-text-display">${d.rawText}</div>
+                            <div id="edit-box-${d.id}" style="display:none; margin-top:5px;">
+                                <input type="text" id="edit-input-${d.id}" class="edit-input" value="${d.rawText}">
+                                <div style="margin-top:5px; text-align:right;">
+                                    <button class="btn-outline" style="padding:2px 8px; font-size:0.8em;" onclick="cancelEdit(${d.id})">戻る</button>
+                                    <button class="btn-outline" style="background:var(--accent-color); color:white; padding:2px 8px; font-size:0.8em;" onclick="saveEdit(${d.id})">変更&再送</button>
+                                </div>
+                            </div>
+                            <div style="margin-top:4px;">${statusIcon} ${tgtStr}</div>
+                        </td>
+                        <td style="width:50px; text-align:right; vertical-align:top;">
+                            <button class="btn-outline" style="font-size:0.75em; padding:3px 6px; margin-bottom:5px;" onclick="startEdit(${d.id})">✎</button>
+                            <br>
+                            <button class="btn-danger" style="font-size:0.75em; padding:3px 6px;" onclick="deleteRecord(${d.id})">×</button>
+                        </td>
+                    `;
                     tbody.appendChild(tr);
                 });
             }
@@ -1584,412 +598,55 @@
             const unsent = appState.data.filter(d => !d.synced).length;
             if (unsent > 0) {
                 syncAlert.style.display = 'flex';
-                unsentCount.textContent = unsent;
+                document.getElementById('unsentCount').textContent = unsent;
             } else {
                 syncAlert.style.display = 'none';
             }
 
-            countSpan.textContent = appState.data.length;
+            document.getElementById('dataCount').textContent = appState.data.length;
         }
 
-
-
-        // ... (Existing variables) ...
-        // ... (Existing variables) ...
-        // Initialize Data Manager Button (Moved to static HTML in footer)
-
-
-
-        // ==========================================
-        //  Data Manager Logic
-        // ==========================================
-        function openDataManager() {
-            document.getElementById('dataManagerModal').style.display = 'block';
-
-            // 橋フィルタの更新
-            const bridgeSet = new Set(appState.data.map(d => d.bridgeName).filter(n => n));
-            const diffSelect = document.getElementById('dmFilterBridge');
-            diffSelect.innerHTML = '<option value="">全ての橋</option>';
-            bridgeSet.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b;
-                opt.textContent = b;
-                diffSelect.appendChild(opt);
-            });
-
-            updateSheetFilter(); // シートフィルタも初期化
-        }
-
-        function closeDataManager() {
-            document.getElementById('dataManagerModal').style.display = 'none';
-        }
-
-        function updateSheetFilter() {
-            const selectedBridge = document.getElementById('dmFilterBridge').value;
-            const sheetSelect = document.getElementById('dmFilterSheet');
-            sheetSelect.innerHTML = '<option value="">全てのシート</option>';
-
-            // 選択された橋（または全データ）に含まれるシート名を抽出
-            let targetData = appState.data;
-            if (selectedBridge) {
-                targetData = targetData.filter(d => d.bridgeName === selectedBridge);
+        function clearAllData() {
+            if (confirm("端末内の送信履歴をすべて消去しますか？（スプレッドシートのデータは消えません）")) {
+                appState.data = [];
+                saveData();
             }
-
-            const sheetSet = new Set(targetData.map(d => d.sheetName).filter(n => n));
-            // ソートして追加
-            Array.from(sheetSet).sort().forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.textContent = s;
-                sheetSelect.appendChild(opt);
-            });
-
-            renderDataTable();
         }
 
-        function renderDataTable() {
-            const bridgeFilter = document.getElementById('dmFilterBridge').value;
-            const sheetFilter = document.getElementById('dmFilterSheet').value;
-            const tbody = document.getElementById('dmTableBody');
-            const emptyDiv = document.getElementById('dmEmpty');
-
-            tbody.innerHTML = '';
-
-            // フィルタリング
-            const filtered = appState.data.filter(d => {
-                if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
-                if (sheetFilter && d.sheetName !== sheetFilter) return false;
-                return true;
-            });
-
-            if (filtered.length === 0) {
-                emptyDiv.style.display = 'block';
-                return;
+        function deleteRecord(id) {
+            if (confirm("この履歴を削除しますか？")) {
+                appState.data = appState.data.filter(d => d.id !== id);
+                saveData();
             }
-            emptyDiv.style.display = 'none';
-
-            // テーブル描画 (昇順: 古い順=No1, No2...)
-            // ユーザー要望: 入力順(古い順)に1から採番
-            // なので、リストの上(No1)が最も古く、下(NoN)が最新になる
-            filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-            filtered.forEach((d, idx) => {
-                const tr = document.createElement('tr');
-                tr.style.borderBottom = '1px solid #eee';
-
-                // 表示用データの整形
-                const elemStr = d.elementNumber ? `<br><span style="font-size:0.8em; color:#666">#${d.elementNumber}</span>` : '';
-                const widthStr = d.crackWidth ? `W:${d.crackWidth}` : '';
-                const dimStr = (d.dimensions && d.dimensions.length > 0) ? `${d.dimensions}` : '';
-                const valStr = [widthStr, dimStr].filter(x => x).join('<br>');
-
-                // No.は単純な連番 (idx + 1)
-                const no = idx + 1;
-
-                tr.innerHTML = `
-                        <td style="padding:8px;">${no}</td>
-                        <td style="padding:8px;">${d.member}${elemStr}</td>
-                        <td style="padding:8px;">
-                            <span style="font-weight:bold;">${d.damageId || '-'}</span>
-                            <br><span style="font-size:0.8em; color:#666">${d.damageName || ''}</span>
-                            <br><span style="font-size:0.8em; color:#999">${d.remarks || ''}</span>
-                        </td>
-                        <td style="padding:8px;">${valStr}</td>
-                        <td style="padding:8px; white-space:nowrap;">
-                            <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:4px 8px; font-size:0.8em; color:#007acc; margin-right:5px;" 
-                                onclick="openEditModal(${d.id})">編集</button>
-                            <button style="border:1px solid #ddd; background:#fff; border-radius:4px; padding:4px 8px; font-size:0.8em; color:#e74c3c;" 
-                                onclick="deleteRecord('${d.timestamp}')">削除</button>
-                        </td>
-                        `;
-                tbody.appendChild(tr);
-            });
         }
 
-        // --- Edit Modal Functions ---
-        function openEditModal(id) {
-            console.log("Opening edit modal for id:", id);
-            const record = appState.data.find(d => d.id === id);
-            if (!record) {
-                console.error("Record not found:", id);
-                return;
-            }
-
-            const modal = document.getElementById('editModal');
-            if (!modal) {
-                console.error("Edit modal element not found!");
-                return;
-            }
-
-            // -----------------------------------------------------------
-            // Calculate No. based on Chronological Order (Oldest = 1)
-            // -----------------------------------------------------------
-            // 1. Create a chronological list of ALL data (or filtered? usually global or sheet-local)
-            // User likely expects "No." to match the List View "No." relative to the current filter?
-            // "Automatic numbering" usually implies the Sheet's sequence.
-            // Let's deduce it from the same logic as renderDataTable/export.
-            // But openEditModal takes 'id', doesn't know current filter state easily without DOM check.
-            // Simplest consistent approach: Global Chronological Index for that Sheet.
-
-            // Get records for this sheet (to be consistent with "Sheet No.")
-            const currentSheetRecords = appState.data.filter(d => d.sheetName === record.sheetName);
-            // Sort Oldest -> Newest
-            currentSheetRecords.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)));
-            const indexOnSheet = currentSheetRecords.findIndex(d => d.id === id);
-            const no = indexOnSheet + 1;
-
-            const titleEl = document.getElementById('editModalTitle');
-            if (titleEl) {
-                titleEl.textContent = `✏️ 記録の編集 (No.${no})`;
-            }
-
-            document.getElementById('editId').value = id;
-            document.getElementById('editPrevRecord').value = record.prevRecord || '';
-            document.getElementById('editPhotoNo').value = record.photoNo || '';
-            document.getElementById('editSameAngle').value = record.sameAngle || '';
-            document.getElementById('editEmergency').value = record.emergency || '';
-
-            document.getElementById('editMember').value = record.member || '';
-            document.getElementById('editMaterial').value = record.material || '';
-            document.getElementById('editElementNumber').value = record.elementNumber || '';
-
-            // Use Damage ID for editing
-            document.getElementById('editDamageName').value = record.damageId || '';
-
-            document.getElementById('editDegree').value = record.degree || '';
-
-            document.getElementById('editCrackSpacing').value = record.crackSpacing || '';
-            document.getElementById('editCrackWidth').value = record.crackWidth || '';
-            document.getElementById('editDimensions').value = record.dimensions || '';
-
-            document.getElementById('editJudgment').value = record.judgment || '';
-            document.getElementById('editProgress').value = record.progress || '';
-            document.getElementById('editThirdParty').value = record.thirdParty || '';
-
-            document.getElementById('editRemarks').value = record.remarks || '';
-
-            modal.style.display = 'flex';
+        function startEdit(id) {
+            document.getElementById(`text-display-${id}`).style.display = 'none';
+            document.getElementById(`edit-box-${id}`).style.display = 'block';
         }
 
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
+        function cancelEdit(id) {
+            document.getElementById(`text-display-${id}`).style.display = 'block';
+            document.getElementById(`edit-box-${id}`).style.display = 'none';
         }
 
-        function saveEdit() {
-            const id = parseInt(document.getElementById('editId').value);
+        function saveEdit(id) {
             const record = appState.data.find(d => d.id === id);
             if (!record) return;
 
-            // Update record
-            const damageId = document.getElementById('editDamageName').value;
-            record.damageId = damageId;
-            record.prevRecord = document.getElementById('editPrevRecord').value;
-            record.photoNo = document.getElementById('editPhotoNo').value;
-            record.sameAngle = document.getElementById('editSameAngle').value;
-            record.emergency = document.getElementById('editEmergency').value;
+            const newVal = document.getElementById(`edit-input-${id}`).value.trim();
+            if (!newVal) return;
 
-            record.member = document.getElementById('editMember').value;
-            record.material = document.getElementById('editMaterial').value;
-            record.elementNumber = document.getElementById('editElementNumber').value;
+            record.rawText = newVal;
+            record.synced = false; // 再送信対象にする
+            saveData();
 
-            record.damageName = damageTypes[damageId] || (damageId + ": Unknown");
-            record.degree = document.getElementById('editDegree').value;
-
-            record.crackSpacing = document.getElementById('editCrackSpacing').value;
-            record.crackWidth = document.getElementById('editCrackWidth').value;
-            record.dimensions = document.getElementById('editDimensions').value;
-
-            record.judgment = document.getElementById('editJudgment').value;
-            record.progress = document.getElementById('editProgress').value;
-            record.thirdParty = document.getElementById('editThirdParty').value;
-
-            record.remarks = document.getElementById('editRemarks').value;
-            record.synced = false; // Mark as unsynced so it can be re-uploaded
-
-            saveDataLocally(); // Calls updateUI -> saveData
-
-            closeEditModal();
-            renderDataTable(); // Refresh DM
-            updateUI(); // Refresh Main UI
-        }
-
-        // Helper helper to save (duplicate of functionality in saveData but direct call safe)
-        function saveDataLocally() {
-            localStorage.setItem('inspectionData', JSON.stringify(appState.data));
-            // Also trigger simple UI update if needed, but updateUI() does sync alert check
-        }
-        // -----------------------------
-
-        function deleteRecord(timestamp) {
-            if (!confirm('本当にこの記録を削除しますか？')) return;
-            appState.data = appState.data.filter(d => d.timestamp !== timestamp);
-            saveDataLocally();
-            renderDataTable();
-            updateUI(); // メイン画面も更新
-        }
-
-        function exportFilteredCSV() {
-            const bridgeFilter = document.getElementById('dmFilterBridge').value;
-            const sheetFilter = document.getElementById('dmFilterSheet').value;
-
-            // フィルタ&ソート (Oldest -> Newest)
-            let filtered = appState.data.filter(d => {
-                if (bridgeFilter && d.bridgeName !== bridgeFilter) return false;
-                if (sheetFilter && d.sheetName !== sheetFilter) return false;
-                return true;
-            });
-            filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-            if (filtered.length === 0) {
-                alert('出力対象のデータがありません');
-                return;
+            // UIを戻してから自動再送信
+            cancelEdit(id);
+            if (navigator.onLine && config.gasUrl) {
+                sendToCloud(record).then(() => updateUI());
             }
-
-            const bom = '\uFEFF';
-            // GAS互換カラム定義
-            // 1.橋名(管理), 2.シート名(管理), 3.No〜19.備考
-            const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
-
-            const body = filtered.map((d, i) => {
-                const safe = (v) => (v === undefined || v === null) ? "" : v;
-                // Noは単なる連番(1基点、古い順)
-                const no = i + 1;
-
-
-                // GAS互換配列作成
-                const cols = [
-                    safe(d.bridgeName),
-                    safe(d.sheetName),
-                    no,
-                    safe(d.prevRecord),
-                    safe(d.sameAngle),    // 3. 同アングル
-                    safe(d.photoNo),
-                    safe(d.emergency),    // 5. 応急措置
-                    safe(d.member),
-                    safe(d.material),     // 7. 材料
-                    safe(d.elementNumber),
-                    safe(d.damageId),     // 10. 変状 (IDを出力)
-                    safe(d.degree),       // 10. 程度 (Web入力あり)
-                    safe(d.crackSpacing), // 11. ひび間隔
-                    safe(d.crackWidth),
-                    safe(d.dimensions),
-                    safe(d.judgment),     // 14. 判定
-                    safe(d.progress),     // 15. 進行
-                    safe(d.thirdParty),   // 16. 第三者
-                    safe(d.remarks)
-                ];
-
-                return cols.map(c => `"${c}"`).join(',');
-            }).join('\n');
-
-            const blob = new Blob([bom + header + body], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-
-            // ファイル名生成
-            // フィルタされていればその名前を使う
-            let filename = `tenken_export`;
-            if (filtered.length > 0 && bridgeFilter) {
-                filename += `_${bridgeFilter}`;
-                if (sheetFilter) filename += `_${sheetFilter}`;
-            } else {
-                filename += `_all`;
-            }
-            filename += `_${new Date().toISOString().slice(0, 10)}.csv`;
-
-            a.download = filename;
-            a.click();
         }
-
-        // downloadCSV (Footer Button) -> Redirect to new logic (All Data)
-
-
-        function downloadCSV() {
-            if (appState.data.length === 0) return;
-
-            const bom = '\uFEFF';
-            const header = "橋名,シート名,No.,前回調書,同アングル写,写真番号,応急措置写真,部材,材料,要素番号,変状,程度,ひび間隔,ひび幅,数量,判定,進行,第三者被害,備考\n";
-            const body = appState.data.map((d, i) => {
-                const safe = (v) => (v === undefined || v === null) ? "" : v;
-                const cols = [
-                    safe(d.bridgeName), safe(d.sheetName), i + 1,
-                    safe(d.prevRecord), safe(d.sameAngle), safe(d.photoNo), safe(d.emergency),
-                    safe(d.member), safe(d.material), safe(d.elementNumber),
-                    safe(d.damageName),
-                    safe(d.degree), safe(d.crackSpacing), safe(d.crackWidth), safe(d.dimensions),
-                    safe(d.judgment), safe(d.progress), safe(d.thirdParty), safe(d.remarks)
-                ];
-                return cols.map(c => `"${c}"`).join(',');
-            }).join('\n');
-
-            const blob = new Blob([bom + header + body], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'tenken_full_backup_' + new Date().toISOString().slice(0, 10) + '.csv';
-            a.click();
-        }
-    </script>
-    <!-- デバッグログ表示用 (Mobile) -->
-    <div id="debugLog"
-        style="display:none; position:fixed; bottom:0; left:0; width:100%; height:150px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:10px; overflow-y:scroll; padding:5px; z-index:9999; border-top:1px solid #444;">
-        <div
-            style="position:sticky; top:0; background:rgba(0,0,0,0.9); padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid #444; display:flex; justify-content:space-between;">
-            <span>📋 System Logs</span>
-            <button onclick="document.getElementById('debugLog').innerHTML=''" style="padding:0 5px;">Clear</button>
-            <button onclick="document.getElementById('debugLog').style.display='none'"
-                style="padding:0 5px;">Close</button>
-        </div>
-        <div id="debugContent"></div>
-    </div>
-
-    <!-- デバッグトグルボタン (Footer) -->
-    <div style="text-align:center; padding-bottom:10px;">
-        <button onclick="toggleDebugLog()"
-            style="background:none; border:none; color:#ccc; font-size:0.8em; text-decoration:underline;">
-            Show Debug Logs
-        </button>
-    </div>
-
-    <script>
-        // === Mobile Debug Logger ===
-        function toggleDebugLog() {
-            const el = document.getElementById('debugLog');
-            el.style.display = el.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function logToScreen(msg, type = 'log') {
-            const content = document.getElementById('debugContent');
-            if (!content) return;
-            const line = document.createElement('div');
-            line.style.color = type === 'error' ? '#ff6b6b' : '#0f0';
-            line.style.borderBottom = '1px solid #333';
-            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            content.appendChild(line);
-            // Auto scroll
-            document.getElementById('debugLog').scrollTop = document.getElementById('debugLog').scrollHeight;
-        }
-
-        // Intercept Console and Errors
-        const originalLog = console.log;
-        const originalError = console.error;
-
-        console.log = function (...args) {
-            originalLog.apply(console, args);
-            logToScreen(args.join(' '));
-        };
-
-        console.error = function (...args) {
-            originalError.apply(console, args);
-            logToScreen(args.join(' '), 'error');
-        };
-
-        window.onerror = function (msg, url, line) {
-            logToScreen(`ERROR: ${msg} at ${line}`, 'error');
-            // Show log automatically on error
-            document.getElementById('debugLog').style.display = 'block';
-        };
     </script>
 </body>
 
