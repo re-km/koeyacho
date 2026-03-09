@@ -15,7 +15,7 @@
 
 // ▼▼▼ 設定エリア ▼▼▼
 // ここに点検データを保存する親フォルダのIDを貼り付けてください
-const TARGET_FOLDER_ID = "ここにフォルダIDを貼り付け";
+const TARGET_FOLDER_ID = "1EUOTznh8cuaz_5o-EPC2plCJVxxgNnG4";
 // ▲▲▲ 設定エリア ▲▲▲
 
 // POSTリクエスト：データ書き込み
