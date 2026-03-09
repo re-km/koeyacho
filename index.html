@@ -299,7 +299,7 @@
         // ==========================================
         // 【重要】GASをデプロイしたWeb App URLをここに直接記述してください。
         // これにより、iPhone側でキャッシュが飛んでもURL設定が消滅しません。
-        const HARDCODED_GAS_URL = "ここにGASのURLを貼り付けます";
+        const HARDCODED_GAS_URL = "https://script.google.com/macros/s/AKfycbxBl-miFnwKmM4EkKAcqVW6aIaPUrkpesdRHGM0_yK3_Ure2WX5nY0818Yy_NXKSvqN1g/exec";
 
         let config = {
             gasUrl: localStorage.getItem('gasUrl') || HARDCODED_GAS_URL,
@@ -319,7 +319,8 @@
         // ==========================================
         window.onload = () => {
             // もしハードコードURLが設定されていて、LocalStorageと異なるなら更新
-            if (HARDCODED_GAS_URL && HARDCODED_GAS_URL !== "ここにGASのURLを貼り付けます" && config.gasUrl !== HARDCODED_GAS_URL) {
+            // (URL文字列が "http" から始まっているかどうかで判定)
+            if (HARDCODED_GAS_URL && HARDCODED_GAS_URL.startsWith("http") && config.gasUrl !== HARDCODED_GAS_URL) {
                 config.gasUrl = HARDCODED_GAS_URL;
                 localStorage.setItem('gasUrl', config.gasUrl);
             }
@@ -333,7 +334,7 @@
             renderBridgeSelect();
             updateUI();
 
-            if (config.gasUrl && config.gasUrl !== "ここにGASのURLを貼り付けます") {
+            if (config.gasUrl && config.gasUrl.startsWith("http")) {
                 fetchBridgeList();
             } else {
                 alert("HTML内の HARDCODED_GAS_URL にスクリプトURLを設定してください。");
