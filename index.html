@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>koeyacho v3.0</title>
+    <title>koeyacho v3.1</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" href="icon.png">
@@ -182,6 +182,30 @@
             font-size: 0.8em;
         }
 
+        .status-check {
+            color: #663c00;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .normalized-text {
+            color: var(--sub-text);
+            font-size: 0.78em;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .warning-box {
+            margin-top: 6px;
+            padding: 6px 8px;
+            border: 1px solid #f0c36d;
+            border-radius: 4px;
+            background: #fff4e5;
+            color: #663c00;
+            font-size: 0.78em;
+            line-height: 1.4;
+        }
+
         .raw-text-display {
             font-weight: 500;
         }
@@ -226,7 +250,7 @@
 </head>
 
 <body>
-    <h1>koeyacho v3.0</h1>
+    <h1>koeyacho v3.1</h1>
 
     <div id="syncAlert" class="sync-alert">
         <span>⚠️ 未送信データ: <strong id="unsentCount">0</strong>件</span>
@@ -291,7 +315,7 @@
         </div>
     </div>
 
-    <div class="footer">v3.0.0 (Gemini AI Powered)</div>
+    <div class="footer">v3.1.0 (Lookup + Gemini)</div>
 
     <script>
         // ==========================================
@@ -384,12 +408,65 @@
 
         function loadData() {
             const json = localStorage.getItem('inspectionData');
-            if (json) appState.data = JSON.parse(json);
+            if (!json) return;
+
+            try {
+                appState.data = JSON.parse(json).map(normalizeStoredRecord);
+            } catch (e) {
+                console.error('履歴読込失敗', e);
+                appState.data = [];
+            }
+        }
+
+        function normalizeStoredRecord(record) {
+            const warnings = Array.isArray(record.warnings) ? record.warnings.filter(Boolean) : [];
+            return {
+                ...record,
+                synced: Boolean(record.synced),
+                parseStatus: record.parseStatus || (warnings.length ? 'warning' : ''),
+                warnings,
+                normalizedText: record.normalizedText || '',
+                resolvedDamageId: record.resolvedDamageId || ''
+            };
         }
 
         function saveData() {
             localStorage.setItem('inspectionData', JSON.stringify(appState.data));
             updateUI();
+        }
+
+        function escapeHtml(value) {
+            return (value == null ? '' : String(value))
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function buildStatusHtml(record) {
+            if (!record.synced) return '<span class="status-wait">⚠️未送信</span>';
+            if (record.parseStatus === 'warning') return '<span class="status-check">⚠️保存済(要確認)</span>';
+            return '<span class="status-ok">☁️送信済</span>';
+        }
+
+        function buildNormalizedHtml(record) {
+            const parts = [];
+            if (record.normalizedText && record.normalizedText !== record.rawText) {
+                parts.push(`補正: ${escapeHtml(record.normalizedText)}`);
+            }
+            if (record.resolvedDamageId) {
+                parts.push(`損傷番号: ${escapeHtml(record.resolvedDamageId)}`);
+            }
+            return parts.length ? `<div class="normalized-text">${parts.join(' / ')}</div>` : '';
+        }
+
+        function buildWarningHtml(record) {
+            if (record.parseStatus !== 'warning' || !Array.isArray(record.warnings) || record.warnings.length === 0) {
+                return '';
+            }
+            const items = record.warnings.map((warning) => escapeHtml(warning)).join('<br>');
+            return `<div class="warning-box">${items}</div>`;
         }
 
         // ==========================================
@@ -451,7 +528,11 @@
                 bridgeName: bInfo.name,
                 sheetName: getCurrentSheetName(),
                 rawText: appState.currentRawText, // 生テキストのみ持つ
-                synced: false
+                synced: false,
+                parseStatus: '',
+                warnings: [],
+                normalizedText: '',
+                resolvedDamageId: ''
             };
 
             appState.data.unshift(record); // 最新を上に追加
@@ -523,10 +604,14 @@
 
                 if (json.success) {
                     record.synced = true;
+                    record.parseStatus = json.parseStatus || '';
+                    record.warnings = Array.isArray(json.warnings) ? json.warnings : [];
+                    record.normalizedText = json.normalizedText || '';
+                    record.resolvedDamageId = json.resolvedDamageId || '';
                     // GASから採番されたNoが返ってくれば保存しておいても良い
                     if (json.assignedNo) record.assignedNo = json.assignedNo;
                     saveData();
-                    return { success: true };
+                    return { success: true, parseStatus: record.parseStatus };
                 } else {
                     throw new Error(json.error || "Unknown Error");
                 }
@@ -566,19 +651,25 @@
 
                 appState.data.forEach((d, idx) => {
                     const tr = document.createElement('tr');
-                    const statusIcon = d.synced ? '<span class="status-ok">☁️送信済</span>' : '<span class="status-wait">⚠️未送信</span>';
+                    const statusIcon = buildStatusHtml(d);
                     // 記録順の仮想No
                     const displayNo = total - idx;
 
                     // シート名表示（省略されがちなので）
-                    const tgtStr = `<span style="font-size:0.8em; color:#888;">[${d.sheetName}]</span>`;
+                    const tgtStr = `<span style="font-size:0.8em; color:#888;">[${escapeHtml(d.sheetName || '')}]</span>`;
+                    const rawTextHtml = escapeHtml(d.rawText || '');
+                    const editValue = escapeHtml(d.rawText || '');
+                    const normalizedHtml = buildNormalizedHtml(d);
+                    const warningHtml = buildWarningHtml(d);
 
                     tr.innerHTML = `
                         <td style="width:25px; vertical-align:top; color:#999; font-size:0.8em;">${displayNo}</td>
                         <td style="vertical-align:top;">
-                            <div id="text-display-${d.id}" class="raw-text-display">${d.rawText}</div>
+                            <div id="text-display-${d.id}" class="raw-text-display">${rawTextHtml}</div>
+                            ${normalizedHtml}
+                            ${warningHtml}
                             <div id="edit-box-${d.id}" style="display:none; margin-top:5px;">
-                                <input type="text" id="edit-input-${d.id}" class="edit-input" value="${d.rawText}">
+                                <input type="text" id="edit-input-${d.id}" class="edit-input" value="${editValue}">
                                 <div style="margin-top:5px; text-align:right;">
                                     <button class="btn-outline" style="padding:2px 8px; font-size:0.8em;" onclick="cancelEdit(${d.id})">戻る</button>
                                     <button class="btn-outline" style="background:var(--accent-color); color:white; padding:2px 8px; font-size:0.8em;" onclick="saveEdit(${d.id})">変更&再送</button>
@@ -640,6 +731,10 @@
 
             record.rawText = newVal;
             record.synced = false; // 再送信対象にする
+            record.parseStatus = '';
+            record.warnings = [];
+            record.normalizedText = '';
+            record.resolvedDamageId = '';
             saveData();
 
             // UIを戻してから自動再送信
@@ -652,3 +747,5 @@
 </body>
 
 </html>
+
+
